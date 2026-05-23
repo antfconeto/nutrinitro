@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nutrinitro/src/core/config/env.dart';
 import 'package:nutrinitro/src/core/themes/app_theme.dart';
+import 'package:nutrinitro/src/ui/splash/splash_page.dart';
 
 final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -16,11 +17,8 @@ class AppWidget extends StatelessWidget {
       theme: appTheme,
       initialRoute: '/',
       routes: {
-        '/': (context) => const Scaffold(
-              body: Center(
-                child: Text('Home Page'),
-              ),
-            ),
+        '/': (context) => const SplashPage(),
+        '/tabs': (context) => const Scaffold(body: Center(child: Text('Tabs Page'))),
       },
     );
   }
