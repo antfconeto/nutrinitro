@@ -243,7 +243,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w400,
-                        color: AppColors.grayMedium,
+                        color: AppColors.grayLight,
                         letterSpacing: 0.3,
                       ),
                     ),
