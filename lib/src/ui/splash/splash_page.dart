@@ -13,18 +13,92 @@ class SplashPage extends ConsumerStatefulWidget {
   ConsumerState<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashPageState extends ConsumerState<SplashPage> {
+class _SplashPageState extends ConsumerState<SplashPage>
+    with TickerProviderStateMixin {
+  late final AnimationController _iconCtrl;
+  late final Animation<double> _iconScale;
+  late final Animation<double> _iconFade;
+
+  late final AnimationController _pulseCtrl;
+  late final Animation<double> _pulseScale;
+  late final Animation<double> _pulseOpacity;
+
+  late final AnimationController _textCtrl;
+  late final Animation<double> _textFade;
+  late final Animation<Offset> _textSlide;
+
+  late final AnimationController _bottomCtrl;
+  late final Animation<double> _bottomFade;
+
   @override
   void initState() {
     super.initState();
+
+    _iconCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+    _iconScale = Tween<double>(begin: 0.7, end: 1.0).animate(
+      CurvedAnimation(parent: _iconCtrl, curve: Curves.easeOutBack),
+    );
+    _iconFade = CurvedAnimation(parent: _iconCtrl, curve: Curves.easeOut);
+
+    _pulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+    _pulseScale = Tween<double>(begin: 1.0, end: 1.6).animate(
+      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeOut),
+    );
+    _pulseOpacity = Tween<double>(begin: 0.5, end: 0.0).animate(
+      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeOut),
+    );
+
+    _textCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _textFade = CurvedAnimation(parent: _textCtrl, curve: Curves.easeIn);
+    _textSlide = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _textCtrl, curve: Curves.easeOut));
+
+    _bottomCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _bottomFade = CurvedAnimation(parent: _bottomCtrl, curve: Curves.easeIn);
+
+    _runSequence();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(splashViewModelProvider.notifier).checkout();
     });
   }
 
+  Future<void> _runSequence() async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    await _iconCtrl.forward();
+
+    _pulseCtrl.forward();
+    await Future.delayed(const Duration(milliseconds: 100));
+    await _textCtrl.forward();
+    await _bottomCtrl.forward();
+  }
+
+  @override
+  void dispose() {
+    _iconCtrl.dispose();
+    _pulseCtrl.dispose();
+    _textCtrl.dispose();
+    _bottomCtrl.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    ref.listen<String?>(splashViewModelProvider, (previousState, nextState) {
+    ref.listen<String?>(splashViewModelProvider, (_, nextState) {
       if (nextState != null) {
         Navigator.of(context).pushReplacementNamed(nextState);
       }
@@ -35,49 +109,160 @@ class _SplashPageState extends ConsumerState<SplashPage> {
         width: double.infinity,
         height: double.infinity,
         decoration: const BoxDecoration(
-          color: AppColors.grayLight,
+          color: AppColors.navy,
         ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Image.asset(
-                R.ASSETS_IMAGES_ICON_PNG,
-                width: 220,
-                fit: BoxFit.contain,
-              ),
-              const SizedBox(height: 4),
-              RichText(
-                text: const TextSpan(
-                  children: [
-                    TextSpan(
-                      text: 'Nutri',
-                      style: TextStyle(
-                        fontSize: 48,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.green,
-                        letterSpacing: -1,
-                      ),
-                    ),
-                    TextSpan(
-                      text: 'Nitro',
-                      style: TextStyle(
-                        fontSize: 48,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.orange,
-                        letterSpacing: -1,
-                      ),
-                    ),
-                  ],
+        child: Stack(
+          children: [
+            Positioned(
+              top: -80,
+              left: -80,
+              child: Container(
+                width: 260,
+                height: 260,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.greenDark.withOpacity(0.25),
                 ),
               ),
-              const SizedBox(height: 64),
-              AppLoading(
-                size: 32,
-                color: AppColors.orange,
+            ),
+            Positioned(
+              bottom: -60,
+              right: -60,
+              child: Container(
+                width: 200,
+                height: 200,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.orange.withOpacity(0.12),
+                ),
               ),
-            ],
-          ),
+            ),
+
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 200,
+                    height: 200,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        AnimatedBuilder(
+                          animation: _pulseCtrl,
+                          builder: (_, __) => Opacity(
+                            opacity: _pulseOpacity.value,
+                            child: Transform.scale(
+                              scale: _pulseScale.value,
+                              child: Container(
+                                width: 150,
+                                height: 150,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppColors.green,
+                                    width: 2.5,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        ScaleTransition(
+                          scale: _iconScale,
+                          child: FadeTransition(
+                            opacity: _iconFade,
+                            child: Container(
+                              width: 140,
+                              height: 140,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(32),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.green.withOpacity(0.35),
+                                    blurRadius: 32,
+                                    spreadRadius: 4,
+                                    offset: const Offset(0, 8),
+                                  ),
+                                ],
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(32),
+                                child: Image.asset(
+                                  R.ASSETS_IMAGES_ICON_PNG,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  SlideTransition(
+                    position: _textSlide,
+                    child: FadeTransition(
+                      opacity: _textFade,
+                      child: RichText(
+                        text: const TextSpan(
+                          children: [
+                            TextSpan(
+                              text: 'Nutri',
+                              style: TextStyle(
+                                fontSize: 52,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.green,
+                                letterSpacing: -1.5,
+                              ),
+                            ),
+                            TextSpan(
+                              text: 'Nitro',
+                              style: TextStyle(
+                                fontSize: 52,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.orange,
+                                letterSpacing: -1.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  FadeTransition(
+                    opacity: _bottomFade,
+                    child: const Text(
+                      'Análise inteligente de culturas',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
+                        color: AppColors.grayMedium,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 72),
+
+                  // Loading
+                  FadeTransition(
+                    opacity: _bottomFade,
+                    child: AppLoading(
+                      size: 32,
+                      color: AppColors.orange,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
