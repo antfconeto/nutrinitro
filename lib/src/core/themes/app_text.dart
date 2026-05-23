@@ -38,4 +38,16 @@ class AppText {
     fontSize: 14,
     color: AppColors.grayMedium,
   );
+
+  static const TextStyle largeLight = TextStyle(
+    fontSize: 20,
+    fontWeight: FontWeight.w600,
+    color: AppColors.white,
+  );
+
+  static const TextStyle smallLight = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w400,
+    color: AppColors.greenLight,
+  );
 }
