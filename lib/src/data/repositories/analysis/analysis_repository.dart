@@ -1,0 +1,128 @@
+import 'package:nutrinitro/src/core/constants/analysis_status.dart';
+import 'package:nutrinitro/src/core/constants/repository_includes.dart';
+import 'package:nutrinitro/src/core/interfaces/api_result_interface.dart';
+import 'package:nutrinitro/src/data/models/analysis_model.dart';
+import 'package:nutrinitro/src/data/models/crop_model.dart';
+import 'package:nutrinitro/src/data/models/image_model.dart';
+import 'package:nutrinitro/src/data/repositories/crop/crop_repository.dart';
+import 'package:nutrinitro/src/data/repositories/image/image_repository.dart';
+import 'package:sqflite/sqflite.dart';
+
+class AnalysisRepository {
+  final Database _db;
+  final ImageRepository _imageRepository;
+  final CropRepository _cropRepository;
+
+  AnalysisRepository(this._db, this._imageRepository, this._cropRepository);
+
+  Future<Result<List<AnalysisModel>>> all({
+    Set<AnalysisInclude> include = const {},
+  }) async {
+    try {
+      final rows = await _db.query('analyses', orderBy: 'datetime DESC');
+      final analyses = <AnalysisModel>[];
+
+      for (final row in rows) {
+        analyses.add(await _buildAnalysis(row, include: include));
+      }
+
+      return Success(analyses);
+    } catch (e) {
+      return Failure(Exception('Error fetching analyses: $e'));
+    }
+  }
+
+  Future<Result<AnalysisModel>> find(
+    int id, {
+    Set<AnalysisInclude> include = const {},
+  }) async {
+    try {
+      final rows = await _db.query(
+        'analyses',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+
+      if (rows.isEmpty) return Failure(Exception('Analysis not found'));
+      return Success(await _buildAnalysis(rows.first, include: include));
+    } catch (e) {
+      return Failure(Exception('Error fetching analysis: $e'));
+    }
+  }
+
+  Future<Result<AnalysisModel>> create({
+    required String title,
+    required DateTime datetime,
+    required int cropId,
+    required List<ImageModel> images,
+    String? notes,
+  }) async {
+    try {
+      final analysisId = await _db.insert('analyses', {
+        'title': title,
+        'datetime': datetime.toIso8601String(),
+        'notes': notes,
+        'crop_id': cropId,
+        'status': AnalysisStatus.pending.name,
+      });
+
+      for (final image in images) {
+        await _db.insert(
+          'images',
+          image.copyWith(analysisId: analysisId).toMap(),
+        );
+      }
+
+      return find(
+        analysisId,
+        include: {AnalysisInclude.crop, AnalysisInclude.images},
+      );
+    } catch (e) {
+      return Failure(Exception('Error creating analysis: $e'));
+    }
+  }
+
+  Future<Result<Nil>> update(int analysisId, Map<String, dynamic> fields) async {
+    try {
+      await _db.update(
+        'analyses',
+        fields,
+        where: 'id = ?',
+        whereArgs: [analysisId],
+      );
+      return successOfNil();
+    } catch (e) {
+      return Failure(Exception('Error updating analysis: $e'));
+    }
+  }
+
+  Future<Result<Nil>> delete(int analysisId) async {
+    try {
+      await _imageRepository.deleteBy('analysis_id', analysisId);
+      await _db.delete('analyses', where: 'id = ?', whereArgs: [analysisId]);
+      return successOfNil();
+    } catch (e) {
+      return Failure(Exception('Error deleting analysis: $e'));
+    }
+  }
+
+  Future<AnalysisModel> _buildAnalysis(
+    Map<String, dynamic> row, {
+    Set<AnalysisInclude> include = const {},
+  }) async {
+    CropModel? crop;
+    List<ImageModel> images = [];
+
+    if (include.contains(AnalysisInclude.crop)) {
+      final result = await _cropRepository.find(row['crop_id'] as int);
+      if (result case Success(:final value)) crop = value;
+    }
+
+    if (include.contains(AnalysisInclude.images)) {
+      final result = await _imageRepository.findBy('analysis_id', row['id']);
+      if (result case Success(:final value)) images = value;
+    }
+
+    return AnalysisModel.fromMap(row, crop: crop, images: images);
+  }
+}

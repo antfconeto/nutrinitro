@@ -64,7 +64,7 @@ class AnalysisModel {
     };
   }
 
-  factory AnalysisModel.fromMap(Map<String, dynamic> map) {
+  factory AnalysisModel.fromMap(Map<String, dynamic> map, {CropModel? crop, required List<ImageModel> images}) {
     return AnalysisModel(
       id: map['id'] != null ? map['id'] as int : null,
       title: map['title'] as String,
@@ -86,7 +86,7 @@ class AnalysisModel {
   String toJson() => json.encode(toMap());
 
   factory AnalysisModel.fromJson(String source) =>
-      AnalysisModel.fromMap(json.decode(source) as Map<String, dynamic>);
+      AnalysisModel.fromMap(json.decode(source) as Map<String, dynamic>, images: []);
 
   @override
   String toString() {

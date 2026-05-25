@@ -1,0 +1,4 @@
+enum AnalysisInclude {
+  crop,
+  images,
+}
