@@ -9,6 +9,48 @@ part of 'repositories_provider.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 
+@ProviderFor(analysisRepository)
+const analysisRepositoryProvider = AnalysisRepositoryProvider._();
+
+final class AnalysisRepositoryProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<AnalysisRepository>,
+          AnalysisRepository,
+          FutureOr<AnalysisRepository>
+        >
+    with
+        $FutureModifier<AnalysisRepository>,
+        $FutureProvider<AnalysisRepository> {
+  const AnalysisRepositoryProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'analysisRepositoryProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$analysisRepositoryHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<AnalysisRepository> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<AnalysisRepository> create(Ref ref) {
+    return analysisRepository(ref);
+  }
+}
+
+String _$analysisRepositoryHash() =>
+    r'1181744cb1b0290294027c3eecd45fc462699b77';
+
 @ProviderFor(cropRepository)
 const cropRepositoryProvider = CropRepositoryProvider._();
 
@@ -86,45 +128,3 @@ final class ImageRepositoryProvider
 }
 
 String _$imageRepositoryHash() => r'e434baab9551fd6f5340cf7a2f22255815e182ef';
-
-@ProviderFor(analysisRepository)
-const analysisRepositoryProvider = AnalysisRepositoryProvider._();
-
-final class AnalysisRepositoryProvider
-    extends
-        $FunctionalProvider<
-          AsyncValue<AnalysisRepository>,
-          AnalysisRepository,
-          FutureOr<AnalysisRepository>
-        >
-    with
-        $FutureModifier<AnalysisRepository>,
-        $FutureProvider<AnalysisRepository> {
-  const AnalysisRepositoryProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'analysisRepositoryProvider',
-        isAutoDispose: true,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
-
-  @override
-  String debugGetCreateSourceHash() => _$analysisRepositoryHash();
-
-  @$internal
-  @override
-  $FutureProviderElement<AnalysisRepository> $createElement(
-    $ProviderPointer pointer,
-  ) => $FutureProviderElement(pointer);
-
-  @override
-  FutureOr<AnalysisRepository> create(Ref ref) {
-    return analysisRepository(ref);
-  }
-}
-
-String _$analysisRepositoryHash() =>
-    r'1181744cb1b0290294027c3eecd45fc462699b77';

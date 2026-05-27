@@ -18,11 +18,7 @@ class ImageRepository {
 
   Future<Result<ImageModel>> find(int id) async {
     try {
-      final rows = await _db.query(
-        'images',
-        where: 'id = ?',
-        whereArgs: [id],
-      );
+      final rows = await _db.query('images', where: 'id = ?', whereArgs: [id]);
       if (rows.isEmpty) return Failure(Exception('Image not found'));
       return Success(ImageModel.fromMap(rows.first));
     } catch (e) {
@@ -44,14 +40,19 @@ class ImageRepository {
     }
   }
 
+  Future<Result<ImageModel>> create(ImageModel image) async {
+    try {
+      final map = image.toMap()..remove('id');
+      final id = await _db.insert('images', map);
+      return find(id);
+    } catch (e) {
+      return Failure(Exception('Error creating image: $e'));
+    }
+  }
+
   Future<Result<Nil>> update(int imageId, Map<String, dynamic> fields) async {
     try {
-      await _db.update(
-        'images',
-        fields,
-        where: 'id = ?',
-        whereArgs: [imageId],
-      );
+      await _db.update('images', fields, where: 'id = ?', whereArgs: [imageId]);
       return successOfNil();
     } catch (e) {
       return Failure(Exception('Error updating image: $e'));

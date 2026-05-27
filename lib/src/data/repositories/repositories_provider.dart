@@ -7,6 +7,14 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'repositories_provider.g.dart';
 
 @riverpod
+Future<AnalysisRepository> analysisRepository(Ref ref) async {
+  final db = await ref.watch(databaseClientProvider.future);
+  final images = await ref.watch(imageRepositoryProvider.future);
+  final crops = await ref.watch(cropRepositoryProvider.future);
+  return AnalysisRepository(db, images, crops);
+}
+
+@riverpod
 Future<CropRepository> cropRepository(Ref ref) async {
   final db = await ref.watch(databaseClientProvider.future);
   return CropRepository(db);
@@ -16,12 +24,4 @@ Future<CropRepository> cropRepository(Ref ref) async {
 Future<ImageRepository> imageRepository(Ref ref) async {
   final db = await ref.watch(databaseClientProvider.future);
   return ImageRepository(db);
-}
-
-@riverpod
-Future<AnalysisRepository> analysisRepository(Ref ref) async {
-  final db     = await ref.watch(databaseClientProvider.future);
-  final images = await ref.watch(imageRepositoryProvider.future);
-  final crops  = await ref.watch(cropRepositoryProvider.future);
-  return AnalysisRepository(db, images, crops);
 }
