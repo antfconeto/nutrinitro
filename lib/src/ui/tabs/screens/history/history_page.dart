@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:nutrinitro/src/core/constants/analysis_status.dart';
@@ -149,10 +148,6 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
         backgroundColor: AppColors.green,
         foregroundColor: AppColors.white,
         elevation: 0,
-        systemOverlayStyle: const SystemUiOverlayStyle(
-          statusBarColor: AppColors.green,
-          statusBarIconBrightness: Brightness.light,
-        ),
       ),
       body: SafeArea(
         child: RefreshIndicator(

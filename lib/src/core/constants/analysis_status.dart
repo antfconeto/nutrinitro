@@ -7,13 +7,13 @@ enum AnalysisStatus {
   String get label {
     switch (this) {
       case AnalysisStatus.pending:
-        return 'Pending';
+        return 'Pendente';
       case AnalysisStatus.processing:
-        return 'Processing';
+        return 'Processando';
       case AnalysisStatus.completed:
-        return 'Completed';
+        return 'Concluída';
       case AnalysisStatus.error:
-        return 'Error';
+        return 'Erro';
     }
   }
 
