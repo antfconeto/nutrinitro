@@ -15,4 +15,7 @@ For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
 
+dart run build_runner watch
+fgen
 adb shell "run-as nutrinitro.com.nutrinitro cat /data/data/nutrinitro.com.nutrinitro/databases/nutrinitro.db" > ~/nutrinitro.db
+adb shell "run-as nutrinitro.com.nutrinitro rm /data/data/nutrinitro.com.nutrinitro/databases/nutrinitro.db"

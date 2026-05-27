@@ -51,32 +51,34 @@ class ImageModel {
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'id': id,
-      'analysisId': analysisId,
-      'originalPath': originalPath,
-      'analyzedPath': analyzedPath,
+      'analysis_id': analysisId,
+      'original_path': originalPath,
+      'analyzed_path': analyzedPath,
       'result': result,
       'latitude': latitude,
       'longitude': longitude,
-      'datetime': datetime?.millisecondsSinceEpoch,
-      'displayOrder': displayOrder,
+      'datetime': datetime?.toIso8601String(),
+      'display_order': displayOrder,
     };
   }
 
   factory ImageModel.fromMap(Map<String, dynamic> map) {
     return ImageModel(
       id: map['id'] != null ? map['id'] as int : null,
-      analysisId: map['analysisId'] as int,
-      originalPath: map['originalPath'] as String,
-      analyzedPath: map['analyzedPath'] != null
-          ? map['analyzedPath'] as String
+      analysisId: map['analysis_id'] as int,
+      originalPath: map['original_path'] as String,
+      analyzedPath: map['analyzed_path'] != null
+          ? map['analyzed_path'] as String
           : null,
       result: map['result'] != null ? map['result'] as String : null,
       latitude: map['latitude'] != null ? map['latitude'] as double : null,
       longitude: map['longitude'] != null ? map['longitude'] as double : null,
       datetime: map['datetime'] != null
-          ? DateTime.fromMillisecondsSinceEpoch(map['datetime'] as int)
+          ? DateTime.parse(
+              map['datetime'] as String,
+            )
           : null,
-      displayOrder: map['displayOrder'] as int,
+      displayOrder: map['display_order'] as int,
     );
   }
 

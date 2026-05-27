@@ -33,7 +33,7 @@ class CropModel {
       'id': id,
       'name': name,
       'icon': icon,
-      'analysisDataJson': analysisDataJson,
+      'analysis_data_json': analysisDataJson,
     };
   }
 
@@ -42,7 +42,7 @@ class CropModel {
       id: map['id'] != null ? map['id'] as int : null,
       name: map['name'] as String,
       icon: map['icon'] as String,
-      analysisDataJson: map['analysisDataJson'] as String,
+      analysisDataJson: map['analysis_data_json'] as String,
     );
   }
 

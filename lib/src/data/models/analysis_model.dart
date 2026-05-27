@@ -10,11 +10,11 @@ import 'package:nutrinitro/src/data/models/image_model.dart';
 class AnalysisModel {
   final int? id;
   final String title;
-  final DateTime datetime; 
+  final DateTime datetime;
   final String? notes;
   final int cropId;
   final AnalysisStatus status;
-  
+
   final CropModel? crop;
   final List<ImageModel> images;
 
@@ -55,38 +55,38 @@ class AnalysisModel {
     return <String, dynamic>{
       'id': id,
       'title': title,
-      'datetime': datetime.millisecondsSinceEpoch,
+      'datetime': datetime..toIso8601String(),
       'notes': notes,
       'cropId': cropId,
       'status': status.name,
-      'crop': crop?.toMap(),
-      'images': images.map((x) => x.toMap()).toList(),
     };
   }
 
-  factory AnalysisModel.fromMap(Map<String, dynamic> map, {CropModel? crop, required List<ImageModel> images}) {
+  factory AnalysisModel.fromMap(
+    Map<String, dynamic> map, {
+    CropModel? crop,
+    List<ImageModel> images = const [],
+  }) {
     return AnalysisModel(
       id: map['id'] != null ? map['id'] as int : null,
       title: map['title'] as String,
-      datetime: DateTime.fromMillisecondsSinceEpoch(map['datetime'] as int),
-      notes: map['notes'] != null ? map['notes'] as String : null,
-      cropId: map['cropId'] as int,
+      datetime: DateTime.parse(
+        map['datetime'] as String,
+      ), 
+      notes: map['notes'] as String?,
+      cropId: map['crop_id'] as int, 
       status: AnalysisStatus.fromString(map['status'] as String),
-      crop: map['crop'] != null
-          ? CropModel.fromMap(map['crop'] as Map<String, dynamic>)
-          : null,
-      images: List<ImageModel>.from(
-        (map['images'] as List<int>).map<ImageModel>(
-          (x) => ImageModel.fromMap(x as Map<String, dynamic>),
-        ),
-      ),
+      crop: crop, 
+      images: images, 
     );
   }
 
   String toJson() => json.encode(toMap());
 
-  factory AnalysisModel.fromJson(String source) =>
-      AnalysisModel.fromMap(json.decode(source) as Map<String, dynamic>, images: []);
+  factory AnalysisModel.fromJson(String source) => AnalysisModel.fromMap(
+    json.decode(source) as Map<String, dynamic>,
+    images: [],
+  );
 
   @override
   String toString() {

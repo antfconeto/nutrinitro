@@ -59,9 +59,16 @@ Future<void> _onCreate(Database db, int version) async {
 Future<void> _seedCrops(Database db) async {
   final crops = [
     {
-      'name': 'Corn',
+      'name': 'Milho',
       'icon': 'assets/images/crops/corn.png',
-      'analysis_data_json': '{"crop":"corn","parameters":{"moisture":14,"protein":8}}',
+      'analysis_data_json':
+          '{"crop":"corn","parameters":{"moisture":14,"protein":8}}',
+    },
+    {
+      'name': 'Feijao',
+      'icon': 'assets/images/crops/soybean.png',
+      'analysis_data_json':
+          '{"crop":"soybean","parameters":{"moisture":13,"protein":36}}',
     },
   ];
 
