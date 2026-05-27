@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'home_view_model.dart';
+part of 'history_view_model.dart';
 
 // **************************************************************************
 // RiverpodGenerator
@@ -9,52 +9,52 @@ part of 'home_view_model.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 
-@ProviderFor(HomeViewModel)
-const homeViewModelProvider = HomeViewModelProvider._();
+@ProviderFor(HistoryViewModel)
+const historyViewModelProvider = HistoryViewModelProvider._();
 
-final class HomeViewModelProvider
-    extends $NotifierProvider<HomeViewModel, HomeState> {
-  const HomeViewModelProvider._()
+final class HistoryViewModelProvider
+    extends $NotifierProvider<HistoryViewModel, HistoryState> {
+  const HistoryViewModelProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
-        name: r'homeViewModelProvider',
+        name: r'historyViewModelProvider',
         isAutoDispose: true,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
 
   @override
-  String debugGetCreateSourceHash() => _$homeViewModelHash();
+  String debugGetCreateSourceHash() => _$historyViewModelHash();
 
   @$internal
   @override
-  HomeViewModel create() => HomeViewModel();
+  HistoryViewModel create() => HistoryViewModel();
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(HomeState value) {
+  Override overrideWithValue(HistoryState value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<HomeState>(value),
+      providerOverride: $SyncValueProvider<HistoryState>(value),
     );
   }
 }
 
-String _$homeViewModelHash() => r'85c2c182a22efc28788f1feb0231a76054fa318c';
+String _$historyViewModelHash() => r'82ca26ae308b398ed6f7f139d8c337c3714eb0cb';
 
-abstract class _$HomeViewModel extends $Notifier<HomeState> {
-  HomeState build();
+abstract class _$HistoryViewModel extends $Notifier<HistoryState> {
+  HistoryState build();
   @$mustCallSuper
   @override
   void runBuild() {
     final created = build();
-    final ref = this.ref as $Ref<HomeState, HomeState>;
+    final ref = this.ref as $Ref<HistoryState, HistoryState>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<HomeState, HomeState>,
-              HomeState,
+              AnyNotifier<HistoryState, HistoryState>,
+              HistoryState,
               Object?,
               Object?
             >;

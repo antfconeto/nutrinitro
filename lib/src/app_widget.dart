@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nutrinitro/src/core/config/env.dart';
 import 'package:nutrinitro/src/core/database/database_client.dart';
 import 'package:nutrinitro/src/core/themes/app_theme.dart';
+import 'package:nutrinitro/src/ui/analysis_details/analysis_details_page.dart';
 import 'package:nutrinitro/src/ui/splash/splash_page.dart';
 import 'package:nutrinitro/src/ui/tabs/tabs_page.dart';
 
@@ -28,6 +29,11 @@ class AppWidget extends ConsumerWidget {
           final initialIndex = args is int ? args : 0;
 
           return TabsPage(initialIndex: initialIndex);
+        },
+        '/analysis_details': (context) {
+          final analysisId = ModalRoute.of(context)!.settings.arguments as int;
+
+          return AnalysisDetailsPage(analysisId: analysisId);
         },
       },
     );

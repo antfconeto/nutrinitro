@@ -31,6 +31,7 @@ class HomeViewModel extends _$HomeViewModel {
           selectedCrop: null,
         );
       case Failure(:final error):
+        print('Error fetching crops: $error');
         state = state.copyWith(
           isLoading: false,
           errorMessage: error.toString(),
@@ -68,6 +69,7 @@ class HomeViewModel extends _$HomeViewModel {
         clearError: true,
       );
     } catch (e) {
+      print('Error picking image from camera: $e');
       state = state.copyWith(errorMessage: 'Erro ao capturar imagem: $e');
     }
   }
@@ -83,6 +85,7 @@ class HomeViewModel extends _$HomeViewModel {
         clearError: true,
       );
     } catch (e) {
+      print('Error picking images from gallery: $e');
       state = state.copyWith(errorMessage: 'Erro ao selecionar imagens: $e');
     }
   }
@@ -98,6 +101,7 @@ class HomeViewModel extends _$HomeViewModel {
       final updated = List<File>.from(state.images)..[index] = cropped;
       state = state.copyWith(images: updated);
     } catch (e) {
+      print('Error cropping image: $e');
       state = state.copyWith(errorMessage: 'Erro ao recortar imagem: $e');
     }
   }
@@ -130,6 +134,7 @@ class HomeViewModel extends _$HomeViewModel {
 
       switch (createResult) {
         case Failure(:final error):
+          print('Error submitting analysis: $error');
           state = state.copyWith(
             isSubmitting: false,
             errorMessage: error.toString(),
@@ -171,6 +176,7 @@ class HomeViewModel extends _$HomeViewModel {
           );
       }
     } catch (e) {
+      print('Error submitting analysis: $e');
       state = state.copyWith(
         isSubmitting: false,
         errorMessage: 'Erro inesperado: $e',

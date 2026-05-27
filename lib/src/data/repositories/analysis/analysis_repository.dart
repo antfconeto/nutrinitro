@@ -21,7 +21,29 @@ class AnalysisRepository {
     try {
       final rows = await _db.query('analyses', orderBy: 'datetime DESC');
       final analyses = <AnalysisModel>[];
+      for (final row in rows) {
+        analyses.add(await _buildAnalysis(row, include: include));
+      }
+      return Success(analyses);
+    } catch (e) {
+      return Failure(Exception('Error fetching analyses: $e'));
+    }
+  }
 
+  Future<Result<List<AnalysisModel>>> allPaginated({
+    required int offset,
+    required int limit,
+    Set<AnalysisInclude> include = const {},
+  }) async {
+    try {
+      final rows = await _db.query(
+        'analyses',
+        orderBy: 'id DESC',
+        limit: limit,
+        offset: offset,
+      );
+
+      final analyses = <AnalysisModel>[];
       for (final row in rows) {
         analyses.add(await _buildAnalysis(row, include: include));
       }
@@ -44,6 +66,7 @@ class AnalysisRepository {
       );
 
       if (rows.isEmpty) return Failure(Exception('Analysis not found'));
+      
       return Success(await _buildAnalysis(rows.first, include: include));
     } catch (e) {
       return Failure(Exception('Error fetching analysis: $e'));
@@ -69,7 +92,7 @@ class AnalysisRepository {
       for (final image in images) {
         await _db.insert(
           'images',
-          image.copyWith(analysisId: analysisId).toMap(),
+          image.copyWith(analysisId: analysisId).toMap()..remove('id'),
         );
       }
 
@@ -82,7 +105,10 @@ class AnalysisRepository {
     }
   }
 
-  Future<Result<Nil>> update(int analysisId, Map<String, dynamic> fields) async {
+  Future<Result<Nil>> update(
+    int analysisId,
+    Map<String, dynamic> fields,
+  ) async {
     try {
       await _db.update(
         'analyses',
@@ -90,6 +116,7 @@ class AnalysisRepository {
         where: 'id = ?',
         whereArgs: [analysisId],
       );
+
       return successOfNil();
     } catch (e) {
       return Failure(Exception('Error updating analysis: $e'));
@@ -100,6 +127,7 @@ class AnalysisRepository {
     try {
       await _imageRepository.deleteBy('analysis_id', analysisId);
       await _db.delete('analyses', where: 'id = ?', whereArgs: [analysisId]);
+
       return successOfNil();
     } catch (e) {
       return Failure(Exception('Error deleting analysis: $e'));

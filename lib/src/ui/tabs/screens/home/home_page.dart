@@ -222,7 +222,6 @@ class _HomePageState extends ConsumerState<HomePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Título ─────────────────────────────────────────────────
                   _sectionLabel('Título', required: true),
                   const SizedBox(height: 8),
                   TextFormField(
@@ -239,7 +238,6 @@ class _HomePageState extends ConsumerState<HomePage> {
 
                   const SizedBox(height: 24),
 
-                  // ── Data e Horário ─────────────────────────────────────────
                   _sectionLabel('Data e horário', required: true),
                   const SizedBox(height: 8),
                   InkWell(
@@ -297,7 +295,6 @@ class _HomePageState extends ConsumerState<HomePage> {
 
                   const SizedBox(height: 24),
 
-                  // ── Tipo de Cultura ────────────────────────────────────────
                   _sectionLabel('Tipo de cultura', required: true),
                   const SizedBox(height: 8),
                   Container(
@@ -368,7 +365,6 @@ class _HomePageState extends ConsumerState<HomePage> {
 
                   const SizedBox(height: 24),
 
-                  // ── Observações ────────────────────────────────────────────
                   _sectionLabel('Observações'),
                   const SizedBox(height: 8),
                   TextFormField(
@@ -385,7 +381,6 @@ class _HomePageState extends ConsumerState<HomePage> {
 
                   const SizedBox(height: 24),
 
-                  // ── Imagens ────────────────────────────────────────────────
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -443,7 +438,6 @@ class _HomePageState extends ConsumerState<HomePage> {
 
                   const SizedBox(height: 40),
 
-                  // ── Botão Criar ────────────────────────────────────────────
                   SizedBox(
                     width: double.infinity,
                     height: 54,
@@ -488,8 +482,6 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
     );
   }
-
-  // ─── Widgets helpers ───────────────────────────────────────────────────────
 
   Widget _sectionLabel(String label, {bool required = false}) {
     return RichText(
