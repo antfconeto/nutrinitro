@@ -56,7 +56,13 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     if (time == null) return;
 
-    final datetime = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    final datetime = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    );
     ref.read(homeViewModelProvider.notifier).updateDatetime(datetime);
   }
 
@@ -98,11 +104,15 @@ class _HomePageState extends ConsumerState<HomePage> {
                 ),
               ),
               const SizedBox(height: 20),
-              Text('Adicionar imagem', style: AppText.large.copyWith(color: AppColors.navy)),
+              Text(
+                'Adicionar imagem',
+                style: AppText.large.copyWith(color: AppColors.navy),
+              ),
               const SizedBox(height: 16),
               _bottomSheetOption(
                 icon: Icons.camera_alt_outlined,
                 label: 'Tirar foto',
+                description: 'Abre a câmera com opção de recorte',
                 onTap: () {
                   Navigator.pop(context);
                   ref.read(homeViewModelProvider.notifier).pickFromCamera();
@@ -112,6 +122,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               _bottomSheetOption(
                 icon: Icons.photo_library_outlined,
                 label: 'Escolher da galeria',
+                description: 'Selecione uma ou mais imagens',
                 onTap: () {
                   Navigator.pop(context);
                   ref.read(homeViewModelProvider.notifier).pickFromGallery();
@@ -128,6 +139,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget _bottomSheetOption({
     required IconData icon,
     required String label,
+    required String description,
     required VoidCallback onTap,
   }) {
     return InkWell(
@@ -143,7 +155,19 @@ class _HomePageState extends ConsumerState<HomePage> {
           children: [
             Icon(icon, color: AppColors.green, size: 24),
             const SizedBox(width: 16),
-            Text(label, style: AppText.medium.copyWith(color: AppColors.navy)),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: AppText.medium.copyWith(color: AppColors.navy),
+                ),
+                Text(
+                  description,
+                  style: AppText.small.copyWith(color: AppColors.grayMedium),
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -185,7 +209,9 @@ class _HomePageState extends ConsumerState<HomePage> {
         elevation: 0,
       ),
       body: state.isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.green))
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.green),
+            )
           : SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Column(
@@ -195,10 +221,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _titleController,
-                    onChanged: (v) => ref
-                        .read(homeViewModelProvider.notifier)
-                        .updateTitle(v),
-                    decoration: _inputDecoration(hint: 'Ex: Talhão norte — parcela 3'),
+                    onChanged: (v) =>
+                        ref.read(homeViewModelProvider.notifier).updateTitle(v),
+                    decoration: _inputDecoration(
+                      hint: 'Ex: Talhão norte — parcela 3',
+                    ),
                     style: AppText.medium.copyWith(fontSize: 14),
                   ),
 
@@ -211,7 +238,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                     borderRadius: BorderRadius.circular(8),
                     child: Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.white,
                         borderRadius: BorderRadius.circular(8),
@@ -229,7 +259,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                           const SizedBox(width: 12),
                           Text(
                             state.datetime != null
-                                ? DateFormat('dd/MM/yyyy  HH:mm').format(state.datetime!)
+                                ? DateFormat(
+                                    'dd/MM/yyyy  HH:mm',
+                                  ).format(state.datetime!)
                                 : 'Selecione a data e o horário',
                             style: AppText.medium.copyWith(
                               fontSize: 14,
@@ -256,12 +288,24 @@ class _HomePageState extends ConsumerState<HomePage> {
                     child: DropdownButtonFormField<int>(
                       value: state.selectedCrop?.id,
                       decoration: const InputDecoration(
-                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                         border: InputBorder.none,
                       ),
-                      hint: Text('Selecione o tipo de cultura', style: AppText.hint),
-                      icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.grayMedium),
-                      style: AppText.medium.copyWith(fontSize: 15, color: AppColors.navy),
+                      hint: Text(
+                        'Selecione o tipo de cultura',
+                        style: AppText.hint,
+                      ),
+                      icon: const Icon(
+                        Icons.keyboard_arrow_down,
+                        color: AppColors.grayMedium,
+                      ),
+                      style: AppText.medium.copyWith(
+                        fontSize: 15,
+                        color: AppColors.navy,
+                      ),
                       items: state.crops.map((CropModel crop) {
                         return DropdownMenuItem<int>(
                           value: crop.id,
@@ -287,7 +331,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                       onChanged: (int? id) {
                         if (id == null) return;
                         final crop = state.crops.firstWhere((c) => c.id == id);
-                        ref.read(homeViewModelProvider.notifier).selectCrop(crop);
+                        ref
+                            .read(homeViewModelProvider.notifier)
+                            .selectCrop(crop);
                       },
                     ),
                   ),
@@ -302,7 +348,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                         .read(homeViewModelProvider.notifier)
                         .updateNotes(v.isEmpty ? null : v),
                     maxLines: 3,
-                    decoration: _inputDecoration(hint: 'Observações opcionais...'),
+                    decoration: _inputDecoration(
+                      hint: 'Observações opcionais...',
+                    ),
                     style: AppText.medium.copyWith(fontSize: 14),
                   ),
 
@@ -325,17 +373,19 @@ class _HomePageState extends ConsumerState<HomePage> {
                     builder: (context, constraints) {
                       const spacing = 8.0;
                       const columns = 3;
-                      final itemSize = (constraints.maxWidth - (spacing * (columns - 1))) / columns;
-
-                      final allItems = [
-                        ...state.images.asMap().entries.map((e) => _imageThumb(e.value, e.key, itemSize)),
-                        _addImageButton(context, itemSize),
-                      ];
+                      final itemSize =
+                          (constraints.maxWidth - (spacing * (columns - 1))) /
+                          columns;
 
                       return Wrap(
                         spacing: spacing,
                         runSpacing: spacing,
-                        children: allItems,
+                        children: [
+                          ...state.images.asMap().entries.map(
+                            (e) => _imageThumb(e.value, e.key, itemSize),
+                          ),
+                          _addImageButton(context, itemSize),
+                        ],
                       );
                     },
                   ),
@@ -348,10 +398,14 @@ class _HomePageState extends ConsumerState<HomePage> {
                     child: ElevatedButton(
                       onPressed: state.isSubmitting
                           ? null
-                          : () => ref.read(homeViewModelProvider.notifier).submit(),
+                          : () => ref
+                                .read(homeViewModelProvider.notifier)
+                                .submit(),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.green,
-                        disabledBackgroundColor: AppColors.green.withOpacity(0.5),
+                        disabledBackgroundColor: AppColors.green.withOpacity(
+                          0.5,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -382,8 +436,6 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
     );
   }
-
-  // ─── Widgets helpers ───────────────────────────────────────────────────────
 
   Widget _sectionLabel(String label) {
     return Text(
@@ -420,6 +472,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       height: size,
       child: Stack(
         children: [
+          // Imagem
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: Image.file(
@@ -429,21 +482,45 @@ class _HomePageState extends ConsumerState<HomePage> {
               fit: BoxFit.cover,
             ),
           ),
+
+          // Botão remover (topo direito)
           Positioned(
             top: 4,
             right: 4,
             child: GestureDetector(
-              onTap: () => ref
-                  .read(homeViewModelProvider.notifier)
-                  .removeImage(index),
+              onTap: () =>
+                  ref.read(homeViewModelProvider.notifier).removeImage(index),
               child: Container(
-                width: 22,
-                height: 22,
+                width: 24,
+                height: 24,
                 decoration: const BoxDecoration(
                   color: AppColors.tomato,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.close, color: AppColors.white, size: 14),
+                child: const Icon(
+                  Icons.close,
+                  color: AppColors.white,
+                  size: 14,
+                ),
+              ),
+            ),
+          ),
+
+          // Botão editar/crop (topo esquerdo)
+          Positioned(
+            top: 4,
+            left: 4,
+            child: GestureDetector(
+              onTap: () =>
+                  ref.read(homeViewModelProvider.notifier).cropImage(index),
+              child: Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: AppColors.navy.withOpacity(0.7),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.crop, color: AppColors.white, size: 14),
               ),
             ),
           ),
@@ -461,14 +538,16 @@ class _HomePageState extends ConsumerState<HomePage> {
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: AppColors.green.withOpacity(0.4),
-          ),
+          border: Border.all(color: AppColors.green.withOpacity(0.4)),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.add_photo_alternate_outlined, color: AppColors.green, size: 28),
+            Icon(
+              Icons.add_photo_alternate_outlined,
+              color: AppColors.green,
+              size: 28,
+            ),
             const SizedBox(height: 4),
             Text(
               'Adicionar',

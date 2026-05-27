@@ -54,12 +54,20 @@ class HomeViewModel extends _$HomeViewModel {
     state = state.copyWith(selectedCrop: crop, clearError: true);
   }
 
+  // Câmera → crop automático → adiciona
   Future<void> pickFromCamera() async {
     try {
       final cameraService = ref.read(cameraServiceProvider);
       final file = await cameraService.pickFromCamera();
       if (file == null) return;
-      await _cropAndAdd(file);
+
+      final cropped = await ref
+          .read(imageCropperServiceProvider)
+          .crop(file.path);
+      state = state.copyWith(
+        images: [...state.images, cropped ?? file],
+        clearError: true,
+      );
     } catch (e) {
       state = state.copyWith(errorMessage: 'Erro ao capturar imagem: $e');
     }
@@ -70,20 +78,29 @@ class HomeViewModel extends _$HomeViewModel {
       final cameraService = ref.read(cameraServiceProvider);
       final files = await cameraService.pickMultipleFromGallery();
       if (files.isEmpty) return;
-      for (final file in files) {
-        await _cropAndAdd(file);
-      }
+
+      state = state.copyWith(
+        images: [...state.images, ...files],
+        clearError: true,
+      );
     } catch (e) {
       state = state.copyWith(errorMessage: 'Erro ao selecionar imagens: $e');
     }
   }
 
-  Future<void> _cropAndAdd(File file) async {
-    final cropped = await ref.read(imageCropperServiceProvider).crop(file.path);
-    state = state.copyWith(
-      images: [...state.images, cropped ?? file],
-      clearError: true,
-    );
+  Future<void> cropImage(int index) async {
+    try {
+      final file = state.images[index];
+      final cropped = await ref
+          .read(imageCropperServiceProvider)
+          .crop(file.path);
+      if (cropped == null) return;
+
+      final updated = List<File>.from(state.images)..[index] = cropped;
+      state = state.copyWith(images: updated);
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Erro ao recortar imagem: $e');
+    }
   }
 
   void removeImage(int index) {
