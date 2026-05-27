@@ -178,7 +178,12 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget build(BuildContext context) {
     final state = ref.watch(homeViewModelProvider);
 
-    ref.listen<HomeState>(homeViewModelProvider, (_, next) {
+    ref.listen<HomeState>(homeViewModelProvider, (previous, next) {
+      if (previous?.title != '' && next.title == '') {
+        _titleController.clear();
+        _notesController.clear();
+      }
+
       if (next.errorMessage != null) {
         Future.microtask(() {
           showTopSnackBar(
@@ -217,7 +222,8 @@ class _HomePageState extends ConsumerState<HomePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _sectionLabel('Título *'),
+                  // ── Título ─────────────────────────────────────────────────
+                  _sectionLabel('Título', required: true),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _titleController,
@@ -225,13 +231,16 @@ class _HomePageState extends ConsumerState<HomePage> {
                         ref.read(homeViewModelProvider.notifier).updateTitle(v),
                     decoration: _inputDecoration(
                       hint: 'Ex: Talhão norte — parcela 3',
+                      hasError: state.titleError,
+                      errorText: 'Informe um título para a análise',
                     ),
                     style: AppText.medium.copyWith(fontSize: 14),
                   ),
 
                   const SizedBox(height: 24),
 
-                  _sectionLabel('Data e horário *'),
+                  // ── Data e Horário ─────────────────────────────────────────
+                  _sectionLabel('Data e horário', required: true),
                   const SizedBox(height: 8),
                   InkWell(
                     onTap: () => _pickDatetime(context),
@@ -245,14 +254,21 @@ class _HomePageState extends ConsumerState<HomePage> {
                       decoration: BoxDecoration(
                         color: AppColors.white,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFDDE4DD)),
+                        border: Border.all(
+                          color: state.datetimeError
+                              ? AppColors.tomato
+                              : const Color(0xFFDDE4DD),
+                          width: state.datetimeError ? 1.5 : 1,
+                        ),
                       ),
                       child: Row(
                         children: [
                           Icon(
                             Icons.calendar_today_outlined,
                             size: 18,
-                            color: state.datetime != null
+                            color: state.datetimeError
+                                ? AppColors.tomato
+                                : state.datetime != null
                                 ? AppColors.green
                                 : AppColors.grayMedium,
                           ),
@@ -265,7 +281,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 : 'Selecione a data e o horário',
                             style: AppText.medium.copyWith(
                               fontSize: 14,
-                              color: state.datetime != null
+                              color: state.datetimeError
+                                  ? AppColors.tomato
+                                  : state.datetime != null
                                   ? AppColors.navy
                                   : AppColors.grayMedium,
                             ),
@@ -274,16 +292,24 @@ class _HomePageState extends ConsumerState<HomePage> {
                       ),
                     ),
                   ),
+                  if (state.datetimeError)
+                    _errorText('Selecione a data e o horário'),
 
                   const SizedBox(height: 24),
 
-                  _sectionLabel('Tipo de cultura *'),
+                  // ── Tipo de Cultura ────────────────────────────────────────
+                  _sectionLabel('Tipo de cultura', required: true),
                   const SizedBox(height: 8),
                   Container(
                     decoration: BoxDecoration(
                       color: AppColors.white,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFFDDE4DD)),
+                      border: Border.all(
+                        color: state.cropError
+                            ? AppColors.tomato
+                            : const Color(0xFFDDE4DD),
+                        width: state.cropError ? 1.5 : 1,
+                      ),
                     ),
                     child: DropdownButtonFormField<int>(
                       value: state.selectedCrop?.id,
@@ -337,9 +363,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                       },
                     ),
                   ),
+                  if (state.cropError)
+                    _errorText('Selecione o tipo de cultura'),
 
                   const SizedBox(height: 24),
 
+                  // ── Observações ────────────────────────────────────────────
                   _sectionLabel('Observações'),
                   const SizedBox(height: 8),
                   TextFormField(
@@ -356,10 +385,11 @@ class _HomePageState extends ConsumerState<HomePage> {
 
                   const SizedBox(height: 24),
 
+                  // ── Imagens ────────────────────────────────────────────────
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _sectionLabel('Imagens *'),
+                      _sectionLabel('Imagens', required: true),
                       if (state.images.isNotEmpty)
                         Text(
                           '${state.images.length} selecionada${state.images.length > 1 ? 's' : ''}',
@@ -377,14 +407,35 @@ class _HomePageState extends ConsumerState<HomePage> {
                           (constraints.maxWidth - (spacing * (columns - 1))) /
                           columns;
 
-                      return Wrap(
-                        spacing: spacing,
-                        runSpacing: spacing,
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          ...state.images.asMap().entries.map(
-                            (e) => _imageThumb(e.value, e.key, itemSize),
+                          Container(
+                            decoration: state.imagesError
+                                ? BoxDecoration(
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: AppColors.tomato,
+                                      width: 1.5,
+                                    ),
+                                  )
+                                : null,
+                            padding: state.imagesError
+                                ? const EdgeInsets.all(8)
+                                : EdgeInsets.zero,
+                            child: Wrap(
+                              spacing: spacing,
+                              runSpacing: spacing,
+                              children: [
+                                ...state.images.asMap().entries.map(
+                                  (e) => _imageThumb(e.value, e.key, itemSize),
+                                ),
+                                _addImageButton(context, itemSize),
+                              ],
+                            ),
                           ),
-                          _addImageButton(context, itemSize),
+                          if (state.imagesError)
+                            _errorText('Adicione pelo menos uma imagem'),
                         ],
                       );
                     },
@@ -392,6 +443,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
                   const SizedBox(height: 40),
 
+                  // ── Botão Criar ────────────────────────────────────────────
                   SizedBox(
                     width: double.infinity,
                     height: 54,
@@ -437,17 +489,53 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-  Widget _sectionLabel(String label) {
-    return Text(
-      label,
-      style: AppText.body.copyWith(fontSize: 13, color: AppColors.grayMedium),
+  // ─── Widgets helpers ───────────────────────────────────────────────────────
+
+  Widget _sectionLabel(String label, {bool required = false}) {
+    return RichText(
+      text: TextSpan(
+        children: [
+          TextSpan(
+            text: label,
+            style: AppText.body.copyWith(
+              fontSize: 13,
+              color: AppColors.grayMedium,
+            ),
+          ),
+          if (required)
+            TextSpan(
+              text: ' *',
+              style: AppText.body.copyWith(
+                fontSize: 13,
+                color: AppColors.orange,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+        ],
+      ),
     );
   }
 
-  InputDecoration _inputDecoration({required String hint}) {
+  Widget _errorText(String message) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 6, left: 4),
+      child: Text(
+        message,
+        style: AppText.small.copyWith(color: AppColors.tomato),
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration({
+    required String hint,
+    bool hasError = false,
+    String? errorText,
+  }) {
     return InputDecoration(
       hintText: hint,
       hintStyle: AppText.hint,
+      errorText: hasError ? errorText : null,
+      errorStyle: AppText.small.copyWith(color: AppColors.tomato),
       filled: true,
       fillColor: AppColors.white,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -457,11 +545,17 @@ class _HomePageState extends ConsumerState<HomePage> {
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Color(0xFFDDE4DD)),
+        borderSide: BorderSide(
+          color: hasError ? AppColors.tomato : const Color(0xFFDDE4DD),
+          width: hasError ? 1.5 : 1,
+        ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: AppColors.green, width: 1.5),
+        borderSide: BorderSide(
+          color: hasError ? AppColors.tomato : AppColors.green,
+          width: 1.5,
+        ),
       ),
     );
   }
@@ -472,7 +566,6 @@ class _HomePageState extends ConsumerState<HomePage> {
       height: size,
       child: Stack(
         children: [
-          // Imagem
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: Image.file(
@@ -482,8 +575,6 @@ class _HomePageState extends ConsumerState<HomePage> {
               fit: BoxFit.cover,
             ),
           ),
-
-          // Botão remover (topo direito)
           Positioned(
             top: 4,
             right: 4,
@@ -505,8 +596,6 @@ class _HomePageState extends ConsumerState<HomePage> {
               ),
             ),
           ),
-
-          // Botão editar/crop (topo esquerdo)
           Positioned(
             top: 4,
             left: 4,

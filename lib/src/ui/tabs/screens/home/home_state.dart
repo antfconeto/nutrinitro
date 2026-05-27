@@ -5,9 +5,9 @@ import 'package:nutrinitro/src/data/models/crop_model.dart';
 class HomeState extends Equatable {
   final bool isLoading;
   final bool isSubmitting;
+  final bool submitted;
   final String? errorMessage;
   final String? successMessage;
-
   final String title;
   final DateTime? datetime;
   final String? notes;
@@ -18,6 +18,7 @@ class HomeState extends Equatable {
   const HomeState({
     this.isLoading = false,
     this.isSubmitting = false,
+    this.submitted = false,
     this.errorMessage,
     this.successMessage,
     this.title = '',
@@ -29,11 +30,20 @@ class HomeState extends Equatable {
   });
 
   bool get isFormValid =>
-      title.isNotEmpty && datetime != null && selectedCrop != null && images.isNotEmpty;
+      title.isNotEmpty &&
+      datetime != null &&
+      selectedCrop != null &&
+      images.isNotEmpty;
+
+  bool get titleError => submitted && title.isEmpty;
+  bool get datetimeError => submitted && datetime == null;
+  bool get cropError => submitted && selectedCrop == null;
+  bool get imagesError => submitted && images.isEmpty;
 
   HomeState copyWith({
     bool? isLoading,
     bool? isSubmitting,
+    bool? submitted,
     String? errorMessage,
     String? successMessage,
     String? title,
@@ -51,28 +61,34 @@ class HomeState extends Equatable {
     return HomeState(
       isLoading: isLoading ?? this.isLoading,
       isSubmitting: isSubmitting ?? this.isSubmitting,
+      submitted: submitted ?? this.submitted,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
-      successMessage: clearSuccess ? null : (successMessage ?? this.successMessage),
+      successMessage: clearSuccess
+          ? null
+          : (successMessage ?? this.successMessage),
       title: title ?? this.title,
       datetime: clearDatetime ? null : (datetime ?? this.datetime),
       notes: clearNotes ? null : (notes ?? this.notes),
       crops: crops ?? this.crops,
-      selectedCrop: clearSelectedCrop ? null : (selectedCrop ?? this.selectedCrop),
+      selectedCrop: clearSelectedCrop
+          ? null
+          : (selectedCrop ?? this.selectedCrop),
       images: images ?? this.images,
     );
   }
 
   @override
   List<Object?> get props => [
-        isLoading,
-        isSubmitting,
-        errorMessage,
-        successMessage,
-        title,
-        datetime,
-        notes,
-        crops,
-        selectedCrop,
-        images,
-      ];
+    isLoading,
+    isSubmitting,
+    submitted,
+    errorMessage,
+    successMessage,
+    title,
+    datetime,
+    notes,
+    crops,
+    selectedCrop,
+    images,
+  ];
 }

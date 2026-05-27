@@ -28,7 +28,7 @@ class HomeViewModel extends _$HomeViewModel {
         state = state.copyWith(
           isLoading: false,
           crops: crops,
-          selectedCrop: crops.isNotEmpty ? crops.first : null,
+          selectedCrop: null,
         );
       case Failure(:final error):
         state = state.copyWith(
@@ -54,7 +54,6 @@ class HomeViewModel extends _$HomeViewModel {
     state = state.copyWith(selectedCrop: crop, clearError: true);
   }
 
-  // Câmera → crop automático → adiciona
   Future<void> pickFromCamera() async {
     try {
       final cameraService = ref.read(cameraServiceProvider);
@@ -109,13 +108,9 @@ class HomeViewModel extends _$HomeViewModel {
   }
 
   Future<void> submit() async {
-    if (!state.isFormValid) {
-      state = state.copyWith(
-        errorMessage:
-            'Preencha todos os campos obrigatórios e adicione pelo menos uma imagem.',
-      );
-      return;
-    }
+    state = state.copyWith(submitted: true);
+
+    if (!state.isFormValid) return;
 
     state = state.copyWith(isSubmitting: true, clearError: true);
 
@@ -167,6 +162,7 @@ class HomeViewModel extends _$HomeViewModel {
           state = state.copyWith(
             isSubmitting: false,
             successMessage: 'Análise criada com sucesso!',
+            submitted: false,
             title: '',
             images: const [],
             clearDatetime: true,
