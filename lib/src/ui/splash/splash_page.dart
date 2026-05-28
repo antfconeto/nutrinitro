@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nutrinitro/src/core/constants/resource.dart';
 import 'package:nutrinitro/src/core/themes/app_colors.dart';
@@ -33,13 +32,6 @@ class _SplashPageState extends ConsumerState<SplashPage>
   @override
   void initState() {
     super.initState();
-
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-      systemNavigationBarColor: AppColors.greenDark,
-      systemNavigationBarIconBrightness: Brightness.light,
-    ));
 
     _iconCtrl = AnimationController(
       vsync: this,
@@ -110,18 +102,12 @@ class _SplashPageState extends ConsumerState<SplashPage>
       }
     });
 
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
-        systemNavigationBarColor: AppColors.greenDark,
-        systemNavigationBarIconBrightness: Brightness.light,
-      ),
-      child: Scaffold(
-        backgroundColor: AppColors.greenDark,
-        body: Container(
-          width: double.infinity,
-          height: double.infinity,
+    return Scaffold(
+      extendBody: true,
+      extendBodyBehindAppBar: true,
+      backgroundColor: AppColors.greenDark,
+      body: SizedBox.expand(
+        child: DecoratedBox(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
@@ -133,6 +119,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
             ),
           ),
           child: Stack(
+            fit: StackFit.expand,
             children: [
               Positioned(
                 top: -60,
@@ -182,129 +169,128 @@ class _SplashPageState extends ConsumerState<SplashPage>
                   ),
                 ),
               ),
-
-              SafeArea(
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: 200,
-                        height: 200,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            AnimatedBuilder(
-                              animation: _pulseCtrl,
-                              builder: (_, __) => Opacity(
-                                opacity: _pulseOpacity.value,
-                                child: Transform.scale(
-                                  scale: _pulseScale.value,
-                                  child: Container(
-                                    width: 150,
-                                    height: 150,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: AppColors.greenLight,
-                                        width: 2.5,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            ScaleTransition(
-                              scale: _iconScale,
-                              child: FadeTransition(
-                                opacity: _iconFade,
+              Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 200,
+                      height: 200,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          AnimatedBuilder(
+                            animation: _pulseCtrl,
+                            builder: (_, __) => Opacity(
+                              opacity: _pulseOpacity.value,
+                              child: Transform.scale(
+                                scale: _pulseScale.value,
                                 child: Container(
-                                  width: 140,
-                                  height: 140,
+                                  width: 150,
+                                  height: 150,
                                   decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(32),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: AppColors.greenLight.withOpacity(0.4),
-                                        blurRadius: 40,
-                                        spreadRadius: 6,
-                                        offset: const Offset(0, 8),
-                                      ),
-                                    ],
-                                  ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(32),
-                                    child: Image.asset(
-                                      R.ASSETS_IMAGES_ICON_PNG,
-                                      fit: BoxFit.cover,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: AppColors.greenLight,
+                                      width: 2.5,
                                     ),
                                   ),
                                 ),
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      SlideTransition(
-                        position: _textSlide,
-                        child: FadeTransition(
-                          opacity: _textFade,
-                          child: RichText(
-                            text: const TextSpan(
-                              children: [
-                                TextSpan(
-                                  text: 'Nutri',
-                                  style: TextStyle(
-                                    fontSize: 52,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.white,
-                                    letterSpacing: -1.5,
+                          ),
+                          ScaleTransition(
+                            scale: _iconScale,
+                            child: FadeTransition(
+                              opacity: _iconFade,
+                              child: Container(
+                                width: 140,
+                                height: 140,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(32),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.greenLight.withOpacity(
+                                        0.4,
+                                      ),
+                                      blurRadius: 40,
+                                      spreadRadius: 6,
+                                      offset: const Offset(0, 8),
+                                    ),
+                                  ],
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(32),
+                                  child: Image.asset(
+                                    R.ASSETS_IMAGES_ICON_PNG,
+                                    fit: BoxFit.cover,
                                   ),
                                 ),
-                                TextSpan(
-                                  text: 'Nitro',
-                                  style: TextStyle(
-                                    fontSize: 52,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.orange,
-                                    letterSpacing: -1.5,
-                                  ),
-                                ),
-                              ],
+                              ),
                             ),
                           ),
-                        ),
+                        ],
                       ),
+                    ),
 
-                      const SizedBox(height: 6),
+                    const SizedBox(height: 20),
 
-                      FadeTransition(
-                        opacity: _bottomFade,
-                        child: const Text(
-                          'Análise inteligente de culturas',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w400,
-                            color: AppColors.greenLight,
-                            letterSpacing: 0.3,
+                    SlideTransition(
+                      position: _textSlide,
+                      child: FadeTransition(
+                        opacity: _textFade,
+                        child: RichText(
+                          text: const TextSpan(
+                            children: [
+                              TextSpan(
+                                text: 'Nutri',
+                                style: TextStyle(
+                                  fontSize: 52,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.white,
+                                  letterSpacing: -1.5,
+                                ),
+                              ),
+                              TextSpan(
+                                text: 'Nitro',
+                                style: TextStyle(
+                                  fontSize: 52,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.orange,
+                                  letterSpacing: -1.5,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
+                    ),
 
-                      const SizedBox(height: 72),
+                    const SizedBox(height: 6),
 
-                      FadeTransition(
-                        opacity: _bottomFade,
-                        child: AppLoading(
-                          size: 32,
-                          color: AppColors.orange,
+                    FadeTransition(
+                      opacity: _bottomFade,
+                      child: const Text(
+                        'Análise inteligente de culturas',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w400,
+                          color: AppColors.greenLight,
+                          letterSpacing: 0.3,
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+
+                    const SizedBox(height: 72),
+
+                    FadeTransition(
+                      opacity: _bottomFade,
+                      child: AppLoading(
+                        size: 32,
+                        color: AppColors.orange,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

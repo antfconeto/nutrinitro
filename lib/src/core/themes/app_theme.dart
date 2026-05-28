@@ -80,6 +80,10 @@ final ThemeData appTheme = ThemeData(
     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
   ),
 
+  navigationBarTheme: const NavigationBarThemeData(
+    backgroundColor: Colors.transparent,
+  ),
+
   appBarTheme: const AppBarTheme(
     backgroundColor: AppColors.green,
     foregroundColor: AppColors.white,
