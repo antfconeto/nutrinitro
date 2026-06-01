@@ -14,6 +14,7 @@ class AnalysisModel {
   final String? notes;
   final int cropId;
   final AnalysisStatus status;
+  final String analysisType;
 
   final CropModel? crop;
   final List<ImageModel> images;
@@ -25,6 +26,7 @@ class AnalysisModel {
     this.notes,
     required this.cropId,
     required this.status,
+    this.analysisType = 'agronomic',
     this.crop,
     required this.images,
   });
@@ -36,6 +38,7 @@ class AnalysisModel {
     String? notes,
     int? cropId,
     AnalysisStatus? status,
+    String? analysisType,
     CropModel? crop,
     List<ImageModel>? images,
   }) {
@@ -46,6 +49,7 @@ class AnalysisModel {
       notes: notes ?? this.notes,
       cropId: cropId ?? this.cropId,
       status: status ?? this.status,
+      analysisType: analysisType ?? this.analysisType,
       crop: crop ?? this.crop,
       images: images ?? this.images,
     );
@@ -55,10 +59,11 @@ class AnalysisModel {
     return <String, dynamic>{
       'id': id,
       'title': title,
-      'datetime': datetime..toIso8601String(),
+      'datetime': datetime.toIso8601String(),
       'notes': notes,
-      'cropId': cropId,
+      'crop_id': cropId,
       'status': status.name,
+      'analysis_type': analysisType,
     };
   }
 
@@ -76,6 +81,7 @@ class AnalysisModel {
       notes: map['notes'] as String?,
       cropId: map['crop_id'] as int, 
       status: AnalysisStatus.fromString(map['status'] as String),
+      analysisType: map['analysis_type'] as String? ?? 'agronomic',
       crop: crop, 
       images: images, 
     );
@@ -90,7 +96,7 @@ class AnalysisModel {
 
   @override
   String toString() {
-    return 'AnalysisModel(id: $id, title: $title, datetime: $datetime, notes: $notes, cropId: $cropId, status: $status, crop: $crop, images: $images)';
+    return 'AnalysisModel(id: $id, title: $title, datetime: $datetime, notes: $notes, cropId: $cropId, status: $status, analysisType: $analysisType, crop: $crop, images: $images)';
   }
 
   @override
@@ -103,6 +109,7 @@ class AnalysisModel {
         other.notes == notes &&
         other.cropId == cropId &&
         other.status == status &&
+        other.analysisType == analysisType &&
         other.crop == crop &&
         listEquals(other.images, images);
   }
@@ -115,6 +122,7 @@ class AnalysisModel {
         notes.hashCode ^
         cropId.hashCode ^
         status.hashCode ^
+        analysisType.hashCode ^
         crop.hashCode ^
         images.hashCode;
   }

@@ -1,9 +1,11 @@
 import 'dart:io';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:nutrinitro/src/core/interfaces/api_result_interface.dart';
 import 'package:nutrinitro/src/data/models/crop_model.dart';
 import 'package:nutrinitro/src/data/models/image_model.dart';
 import 'package:nutrinitro/src/data/repositories/repositories_provider.dart';
 import 'package:nutrinitro/src/data/services/services_provider.dart';
+import 'package:nutrinitro/src/data/services/analysis/analysis_registry.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/home/home_state.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -14,7 +16,9 @@ class HomeViewModel extends _$HomeViewModel {
   @override
   HomeState build() {
     Future.microtask(() => fetchCrops());
-    return const HomeState();
+    return HomeState(
+      analyses: AnalysisRegistry.all,
+    );
   }
 
   Future<void> fetchCrops() async {
@@ -51,12 +55,31 @@ class HomeViewModel extends _$HomeViewModel {
     state = state.copyWith(notes: value, clearError: true);
   }
 
+  void selectAnalysis(RegisteredAnalysis analysis) {
+    // Clear crop selection if it is not supported by the newly selected analysis
+    final CropModel? newSelectedCrop = (state.selectedCrop != null &&
+            analysis.supportedCropNames.contains(state.selectedCrop!.name))
+        ? state.selectedCrop
+        : null;
+
+    state = state.copyWith(
+      selectedAnalysis: analysis,
+      selectedCrop: newSelectedCrop,
+      clearSelectedCrop: newSelectedCrop == null,
+      clearError: true,
+    );
+  }
+
   void selectCrop(CropModel crop) {
     state = state.copyWith(selectedCrop: crop, clearError: true);
   }
 
   Future<void> pickFromCamera() async {
     try {
+      if (Platform.isAndroid) {
+        await Permission.accessMediaLocation.request();
+      }
+
       final cameraService = ref.read(cameraServiceProvider);
       final file = await cameraService.pickFromCamera();
       if (file == null) return;
@@ -76,6 +99,10 @@ class HomeViewModel extends _$HomeViewModel {
 
   Future<void> pickFromGallery() async {
     try {
+      if (Platform.isAndroid) {
+        await Permission.accessMediaLocation.request();
+      }
+
       final cameraService = ref.read(cameraServiceProvider);
       final files = await cameraService.pickMultipleFromGallery();
       if (files.isEmpty) return;
@@ -129,6 +156,7 @@ class HomeViewModel extends _$HomeViewModel {
         datetime: state.datetime!,
         notes: state.notes,
         cropId: state.selectedCrop!.id!,
+        analysisType: 'agronomic',
         images: const [],
       );
 
@@ -173,6 +201,7 @@ class HomeViewModel extends _$HomeViewModel {
             clearDatetime: true,
             clearNotes: true,
             clearSelectedCrop: true,
+            clearSelectedAnalysis: true,
           );
       }
     } catch (e) {

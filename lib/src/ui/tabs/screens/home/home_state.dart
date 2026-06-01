@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:equatable/equatable.dart';
 import 'package:nutrinitro/src/data/models/crop_model.dart';
+import 'package:nutrinitro/src/data/services/analysis/analysis_registry.dart';
 
 class HomeState extends Equatable {
   final bool isLoading;
@@ -14,6 +15,8 @@ class HomeState extends Equatable {
   final List<CropModel> crops;
   final CropModel? selectedCrop;
   final List<File> images;
+  final List<RegisteredAnalysis> analyses;
+  final RegisteredAnalysis? selectedAnalysis;
 
   const HomeState({
     this.isLoading = false,
@@ -27,6 +30,8 @@ class HomeState extends Equatable {
     this.crops = const [],
     this.selectedCrop,
     this.images = const [],
+    this.analyses = const [],
+    this.selectedAnalysis,
   });
 
   bool get isFormValid =>
@@ -52,11 +57,14 @@ class HomeState extends Equatable {
     List<CropModel>? crops,
     CropModel? selectedCrop,
     List<File>? images,
+    List<RegisteredAnalysis>? analyses,
+    RegisteredAnalysis? selectedAnalysis,
     bool clearError = false,
     bool clearSuccess = false,
     bool clearDatetime = false,
     bool clearNotes = false,
     bool clearSelectedCrop = false,
+    bool clearSelectedAnalysis = false,
   }) {
     return HomeState(
       isLoading: isLoading ?? this.isLoading,
@@ -74,6 +82,10 @@ class HomeState extends Equatable {
           ? null
           : (selectedCrop ?? this.selectedCrop),
       images: images ?? this.images,
+      analyses: analyses ?? this.analyses,
+      selectedAnalysis: clearSelectedAnalysis
+          ? null
+          : (selectedAnalysis ?? this.selectedAnalysis),
     );
   }
 
@@ -90,5 +102,7 @@ class HomeState extends Equatable {
     crops,
     selectedCrop,
     images,
+    analyses,
+    selectedAnalysis,
   ];
 }
