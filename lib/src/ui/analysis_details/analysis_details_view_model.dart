@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:nutrinitro/src/core/constants/analysis_status.dart';
 import 'package:nutrinitro/src/core/constants/repository_includes.dart';
 import 'package:nutrinitro/src/core/interfaces/api_result_interface.dart';
@@ -11,10 +12,18 @@ part 'analysis_details_view_model.g.dart';
 @riverpod
 class AnalysisDetailsViewModel extends _$AnalysisDetailsViewModel {
   int? _analysisId;
+  bool _isCancelled = false;
 
   @override
   AnalysisDetailsState build() {
+    ref.onDispose(() {
+      _isCancelled = true;
+    });
     return const AnalysisDetailsState();
+  }
+
+  void cancelAnalysis() {
+    _isCancelled = true;
   }
 
   Future<void> init(int analysisId) async {
@@ -52,10 +61,11 @@ class AnalysisDetailsViewModel extends _$AnalysisDetailsViewModel {
     state = state.copyWith(activeImageIndex: index);
   }
 
-  Future<void> startAnalysis(String analysisType) async {
+  Future<void> startAnalysis(List<String> analysisTypes, {int blockSize = 10}) async {
     final currentAnalysis = state.analysis;
     if (currentAnalysis == null || _analysisId == null) return;
     if (currentAnalysis.isProcessing) return;
+    if (analysisTypes.isEmpty) return;
 
     final images = currentAnalysis.images;
     final int total = images.length;
@@ -73,10 +83,10 @@ class AnalysisDetailsViewModel extends _$AnalysisDetailsViewModel {
       final imageRepo = await ref.read(imageRepositoryProvider.future);
       final analysisService = ref.read(analysisServiceProvider);
 
-      // 1. Update status to processing and set the chosen analysis type
+      // 1. Update status to processing and set the chosen analysis types
       await analysisRepo.update(_analysisId!, {
         'status': AnalysisStatus.processing.name,
-        'analysis_type': analysisType,
+        'analysis_type': analysisTypes.join(','),
       });
       await fetchDetails();
 
@@ -84,28 +94,103 @@ class AnalysisDetailsViewModel extends _$AnalysisDetailsViewModel {
       final cropDataJson = currentAnalysis.crop?.analysisDataJson ?? '{}';
 
       for (int i = 0; i < total; i++) {
+        if (_isCancelled) {
+          await _resetStatusToPendingDirectly();
+          return;
+        }
         final image = images[i];
         if (image.id == null) continue;
 
         state = state.copyWith(
           currentAnalyzingImageIndex: i + 1,
           totalImagesToAnalyze: total,
-          clearLiveMatrix: true,
+          clearAnalysisStage: true,
+          clearPipelineSnapshot: true,
+          clearEstimatedResult: true,
         );
 
-        final result = await analysisService.analyze(
-          imagePath: image.originalPath,
-          analysisDataJson: cropDataJson,
-          analysisType: analysisType,
-          onProgress: (matrix) {
-            state = state.copyWith(liveScanningMatrix: matrix);
-          },
-        );
+        // Load existing results from database to preserve previously run analyses
+        final Map<String, dynamic> mergedResult = {};
+        if (image.result != null) {
+          try {
+            mergedResult.addAll(json.decode(image.result!) as Map<String, dynamic>);
+          } catch (_) {}
+        }
+        
+        String analyzedPath = image.analyzedPath ?? image.originalPath;
+
+        for (final analysisType in analysisTypes) {
+          if (_isCancelled) {
+            await _resetStatusToPendingDirectly();
+            return;
+          }
+          state = state.copyWith(
+            currentAnalyzingType: analysisType,
+            clearAnalysisStage: true,
+            clearPipelineSnapshot: true,
+          );
+          final result = await analysisService.analyze(
+            imagePath: image.originalPath,
+            analysisDataJson: cropDataJson,
+            analysisType: analysisType,
+            blockSize: blockSize,
+            onStage: (stage) {
+              state = state.copyWith(currentAnalysisStage: stage);
+            },
+            onSnapshot: (snapshot) {
+              state = state.copyWith(currentPipelineSnapshot: snapshot);
+            },
+          );
+
+          try {
+            final Map<String, dynamic> resultData = json.decode(result.result) as Map<String, dynamic>;
+            
+            // Do not overwrite previous non-null values with null values (e.g. heatmap paths)
+            resultData.removeWhere((key, value) => value == null && mergedResult.containsKey(key));
+
+            // Merge notes beautifully
+            if (mergedResult.containsKey('notes') && resultData.containsKey('notes')) {
+              final String prevNotes = mergedResult['notes'] as String;
+              final String newNotes = resultData['notes'] as String;
+              if (prevNotes != newNotes && !prevNotes.contains(newNotes)) {
+                resultData['notes'] = '$prevNotes\n\n$newNotes';
+              }
+            }
+
+            // Merge prediction methods
+            if (mergedResult.containsKey('prediction_method') && resultData.containsKey('prediction_method')) {
+              final String prevMethod = mergedResult['prediction_method'] as String;
+              final String newMethod = resultData['prediction_method'] as String;
+              if (prevMethod != newMethod && !prevMethod.contains(newMethod)) {
+                resultData['prediction_method'] = '$prevMethod + $newMethod';
+              }
+            }
+            
+            mergedResult.addAll(resultData);
+            state = state.copyWith(currentEstimatedResult: Map<String, dynamic>.from(mergedResult));
+          } catch (e) {
+            print('Error parsing result for $analysisType: $e');
+          }
+
+          if (result.analyzedPath != image.originalPath && result.analyzedPath.isNotEmpty) {
+            analyzedPath = result.analyzedPath;
+          }
+        }
+
+        if (_isCancelled) {
+          await _resetStatusToPendingDirectly();
+          return;
+        }
 
         await imageRepo.update(image.id!, {
-          'analyzed_path': result.analyzedPath,
-          'result': result.result,
+          'analyzed_path': analyzedPath,
+          'result': json.encode(mergedResult),
         });
+      }
+
+      if (_isCancelled) {
+        await _resetStatusToPendingDirectly();
+        return;
       }
 
       // 3. Update status to completed
@@ -116,9 +201,13 @@ class AnalysisDetailsViewModel extends _$AnalysisDetailsViewModel {
         isAnalyzing: false,
         currentAnalyzingImageIndex: total,
         successMessage: 'Análise concluída com sucesso!',
-        clearLiveMatrix: true,
+        clearAnalysisStage: true,
+        clearPipelineSnapshot: true,
+        currentAnalyzingType: null,
+        clearEstimatedResult: true,
       );
     } catch (e) {
+      if (_isCancelled) return;
       print('Error during analysis: $e');
       final analysisRepo = await ref.read(analysisRepositoryProvider.future);
       await analysisRepo.update(_analysisId!, {'status': AnalysisStatus.error.name});
@@ -127,9 +216,22 @@ class AnalysisDetailsViewModel extends _$AnalysisDetailsViewModel {
       state = state.copyWith(
         isAnalyzing: false,
         errorMessage: 'Erro ao processar análise: $e',
-        clearLiveMatrix: true,
+        clearAnalysisStage: true,
+        clearPipelineSnapshot: true,
+        currentAnalyzingType: null,
+        clearEstimatedResult: true,
       );
     }
+  }
+
+  Future<void> _resetStatusToPendingDirectly() async {
+    if (_analysisId == null) return;
+    try {
+      final repo = await ref.read(analysisRepositoryProvider.future);
+      await repo.update(_analysisId!, {
+        'status': AnalysisStatus.pending.name,
+      });
+    } catch (_) {}
   }
 
   void clearError() => state = state.copyWith(clearError: true);

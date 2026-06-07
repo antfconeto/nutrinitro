@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:isolate';
 
 import 'package:nutrinitro/src/data/models/analysis_payload.dart';
+import 'package:nutrinitro/src/data/services/analysis/analysis_progress.dart';
 import 'package:nutrinitro/src/data/services/analysis/analysis_registry.dart';
 
 class AnalysisService {
@@ -10,7 +11,9 @@ class AnalysisService {
     required String imagePath,
     required String analysisDataJson,
     required String analysisType,
-    void Function(List<List<double>> matrix)? onProgress,
+    int blockSize = 10,
+    void Function(AnalysisStageUpdate stage)? onStage,
+    void Function(AnalysisPipelineSnapshot snapshot)? onSnapshot,
   }) async {
     final receivePort = ReceivePort();
 
@@ -21,16 +24,17 @@ class AnalysisService {
         imagePath: imagePath,
         analysisDataJson: analysisDataJson,
         analysisType: analysisType,
+        blockSize: blockSize,
       ),
     );
 
     AnalysisResult? finalResult;
 
     await for (final msg in receivePort) {
-      if (msg is List<List<double>>) {
-        if (onProgress != null) {
-          onProgress(msg);
-        }
+      if (msg is AnalysisStageUpdate) {
+        onStage?.call(msg);
+      } else if (msg is AnalysisPipelineSnapshot) {
+        onSnapshot?.call(msg);
       } else if (msg is AnalysisResult) {
         finalResult = msg;
         break;
@@ -47,9 +51,17 @@ class AnalysisService {
         StandardAgronomicAnalysis();
 
     // Execute the custom analysis logic safely in the isolate background
-    final resultData = await analysis.run(File(payload.imagePath), progressPort: payload.sendPort);
+    final resultData = await analysis.run(
+      File(payload.imagePath),
+      progressPort: payload.sendPort,
+      blockSize: payload.blockSize,
+      analysisType: payload.analysisType,
+    );
 
-    final String analyzedPath = resultData['heatmap_path'] as String? ?? payload.imagePath;
+    final String analyzedPath = resultData['heatmap_path'] as String?
+        ?? resultData['processed_image_path'] as String?
+        ?? resultData['cropped_original_path'] as String?
+        ?? payload.imagePath;
 
     final result = AnalysisResult(
       analyzedPath: analyzedPath,

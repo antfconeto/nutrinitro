@@ -10,9 +10,11 @@
 .history
 .svn/
 .swiftpm/
+research-tcc/
 migrate_working_dir/
 macos/
 linux/
+tcc/
 
 # IntelliJ related
 *.iml

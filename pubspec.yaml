@@ -59,6 +59,7 @@ dependencies:
     pdf: ^3.12.0
     printing: ^5.14.3
     path_provider: ^2.1.5
+    opencv_dart: ^2.2.1+4
 
 dev_dependencies:
     flutter_test:
@@ -120,3 +121,21 @@ flutter:
     #
     # For details regarding fonts from package dependencies,
     # see https://flutter.dev/to/font-from-package
+
+hooks:
+    user_defines:
+        dartcv4:
+            include_modules:
+                - imgcodecs
+                - imgproc
+            exclude_modules:
+                - contrib
+                - dnn
+                - calib3d
+                - features2d
+                - highgui
+                - video
+                - videoio
+                - objdetect
+                - photo
+                - stitching

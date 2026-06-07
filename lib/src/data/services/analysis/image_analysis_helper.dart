@@ -1,5 +1,23 @@
 import 'dart:io';
+import 'dart:math' as math;
+import 'dart:typed_data';
 import 'package:image/image.dart' as img;
+import 'package:nutrinitro/src/data/services/analysis/analysis_progress.dart';
+import 'package:opencv_dart/opencv.dart' as cv;
+
+class ImageBlockGrid {
+  final List<List<RgbColor>> matrix;
+  final String processedImagePath;
+  final int imageWidth;
+  final int imageHeight;
+
+  const ImageBlockGrid({
+    required this.matrix,
+    required this.processedImagePath,
+    required this.imageWidth,
+    required this.imageHeight,
+  });
+}
 
 class RgbColor {
   final double r;
@@ -13,81 +31,259 @@ class RgbColor {
 }
 
 class ImageAnalysisHelper {
-  /// Decodes an image file and divides it into blocks of [blockWidth] x [blockHeight],
-  /// returning a 2D matrix of the average R, G, B values for each block.
-  static Future<List<List<RgbColor>>> calculateBlockRgbAverages(
+  static const int kBilateralDiameter = 9;
+  static const double kBilateralSigmaColor = 75.0;
+  static const double kBilateralSigmaSpace = 75.0;
+  static const double kGamma = 0.8;
+
+  static List<int> _gammaLookupTable() {
+    return List.generate(256, (i) {
+      return (255.0 * math.pow(i / 255.0, 1.0 / kGamma)).round().clamp(0, 255);
+    });
+  }
+
+  static void _emitStage(
+    void Function(AnalysisStageUpdate stage)? onStage,
+    String stageId,
+  ) {
+    onStage?.call(ChlorophyllAnalysisStages.byId(stageId));
+  }
+
+  static const int kPreviewMaxDim = 480;
+  static const int kPreviewJpegQuality = 72;
+  static const int kMaxProgressiveFrames = 28;
+
+  static int _progressiveStep(int total, {int maxFrames = kMaxProgressiveFrames}) {
+    if (total <= 0) return 1;
+    return (total / maxFrames).ceil().clamp(1, total);
+  }
+
+  static (cv.Mat previewMat, int width, int height) _resizeForPreview(cv.Mat source) {
+    final int w = source.cols;
+    final int h = source.rows;
+    if (w <= kPreviewMaxDim && h <= kPreviewMaxDim) {
+      return (source.clone(), w, h);
+    }
+    final double scale = kPreviewMaxDim / math.max(w, h);
+    final int newW = (w * scale).round().clamp(1, kPreviewMaxDim);
+    final int newH = (h * scale).round().clamp(1, kPreviewMaxDim);
+    final cv.Mat resized = cv.resize(source, (newW, newH));
+    return (resized, newW, newH);
+  }
+
+  static Uint8List _matToPreviewJpeg(cv.Mat mat) {
+    final resized = _resizeForPreview(mat);
+    final cv.Mat preview = resized.$1;
+    final bool ownsPreview = resized.$2 != mat.cols || resized.$3 != mat.rows;
+    final cv.VecI32 params = cv.VecI32.fromList([cv.IMWRITE_JPEG_QUALITY, kPreviewJpegQuality]);
+    final (_, Uint8List bytes) = cv.imencode('.jpg', preview, params: params);
+    params.dispose();
+    if (ownsPreview) preview.dispose();
+    return bytes;
+  }
+
+  static void _emitSnapshot(
+    PipelineSnapshotCallback? onSnapshot,
+    AnalysisPipelineSnapshot snapshot,
+  ) {
+    onSnapshot?.call(snapshot);
+  }
+
+  /// Decodes an image file and divides it into blocks of [blockWidth] x [blockHeight].
+  ///
+  /// Pipeline: bilateral (OpenCV nativo) → gamma 0.8 → grade NxN (sem crop).
+  static Future<ImageBlockGrid> calculateBlockRgbAverages(
     File imageFile, {
     required int blockWidth,
     required int blockHeight,
+    void Function(AnalysisStageUpdate stage)? onStage,
+    PipelineSnapshotCallback? onSnapshot,
   }) async {
-    final bytes = await imageFile.readAsBytes();
-    final image = img.decodeImage(bytes);
-    if (image == null) {
+    final Uint8List bytes = await imageFile.readAsBytes();
+    final cv.Mat decoded = cv.imdecode(bytes, cv.IMREAD_COLOR);
+    if (decoded.rows == 0 || decoded.cols == 0) {
+      decoded.dispose();
       throw Exception('Não foi possível decodificar a imagem.');
     }
 
-    final int imgWidth = image.width;
-    final int imgHeight = image.height;
+    cv.Mat? processedMat;
+    int previewW = 0;
+    int previewH = 0;
+    Uint8List? previewJpeg;
+    try {
+      final Uint8List originalJpeg = _matToPreviewJpeg(decoded);
+      _emitSnapshot(onSnapshot, AnalysisPipelineSnapshot(
+        stageId: 'original',
+        imageJpeg: originalJpeg,
+        imageWidth: decoded.cols,
+        imageHeight: decoded.rows,
+        stageProgress: 0.0,
+      ));
 
-    // Downscale full original image directly to 800px wide (no crop)
-    final int newW = 800;
-    final int newH = (imgHeight * 800 / imgWidth).round();
-    final img.Image resizedImage = img.copyResize(image, width: newW, height: newH);
+      _emitStage(onStage, 'bilateral');
+      _emitSnapshot(onSnapshot, AnalysisPipelineSnapshot(
+        stageId: 'bilateral',
+        imageJpeg: originalJpeg,
+        imageWidth: decoded.cols,
+        imageHeight: decoded.rows,
+        stageProgress: 0.15,
+      ));
 
-    // Save the resized image as a new _cropped.jpg file (preserving the path name for DB/UI compatibility)
-    final String croppedPath = imageFile.path.replaceAll('.jpg', '_cropped.jpg');
-    final File croppedFile = File(croppedPath);
-    await croppedFile.writeAsBytes(img.encodeJpg(resizedImage));
+      final cv.Mat filtered = cv.bilateralFilter(
+        decoded,
+        kBilateralDiameter,
+        kBilateralSigmaColor,
+        kBilateralSigmaSpace,
+      );
 
-    final int finalWidth = resizedImage.width;
-    final int finalHeight = resizedImage.height;
+      final Uint8List bilateralJpeg = _matToPreviewJpeg(filtered);
+      _emitSnapshot(onSnapshot, AnalysisPipelineSnapshot(
+        stageId: 'bilateral',
+        imageJpeg: bilateralJpeg,
+        imageWidth: filtered.cols,
+        imageHeight: filtered.rows,
+        stageProgress: 1.0,
+      ));
 
-    // Determine grid size based on block dimensions
-    final int cols = (finalWidth / blockWidth).floor();
-    final int rows = (finalHeight / blockHeight).floor();
+      _emitStage(onStage, 'gamma');
+      _emitSnapshot(onSnapshot, AnalysisPipelineSnapshot(
+        stageId: 'gamma',
+        imageJpeg: bilateralJpeg,
+        imageWidth: filtered.cols,
+        imageHeight: filtered.rows,
+        stageProgress: 0.2,
+      ));
 
-    if (cols <= 0 || rows <= 0) {
-      throw Exception('O tamanho do bloco ($blockWidth x $blockHeight) é maior do que a imagem ($finalWidth x $finalHeight).');
-    }
+      final cv.Mat lut = cv.Mat.fromList(
+        1,
+        256,
+        cv.MatType.CV_8UC1,
+        _gammaLookupTable(),
+      );
+      processedMat = cv.LUT(filtered, lut);
+      lut.dispose();
+      filtered.dispose();
 
-    final List<List<RgbColor>> matrix = List.generate(
-      rows,
-      (_) => List.filled(cols, const RgbColor(0, 0, 0)),
-    );
+      previewJpeg = _matToPreviewJpeg(processedMat);
+      previewW = processedMat.cols;
+      previewH = processedMat.rows;
+      _emitSnapshot(onSnapshot, AnalysisPipelineSnapshot(
+        stageId: 'gamma',
+        imageJpeg: previewJpeg,
+        imageWidth: previewW,
+        imageHeight: previewH,
+        stageProgress: 1.0,
+      ));
 
-    for (int r = 0; r < rows; r++) {
-      for (int c = 0; c < cols; c++) {
-        final int startX = c * blockWidth;
-        final int startY = r * blockHeight;
+      final int imgW = processedMat.cols;
+      final int imgH = processedMat.rows;
+      final Uint8List bgrData = processedMat.data;
 
-        double sumR = 0;
-        double sumG = 0;
-        double sumB = 0;
-        int count = 0;
+      _emitStage(onStage, 'grid');
 
-        for (int y = 0; y < blockHeight; y++) {
-          for (int x = 0; x < blockWidth; x++) {
-            final int pixelX = startX + x;
-            final int pixelY = startY + y;
+      final int cols = (imgW / blockWidth).floor();
+      final int rows = (imgH / blockHeight).floor();
 
-            if (pixelX < finalWidth && pixelY < finalHeight) {
-              final pixel = resizedImage.getPixel(pixelX, pixelY);
-              sumR += pixel.r;
-              sumG += pixel.g;
-              sumB += pixel.b;
-              count++;
+      if (cols <= 0 || rows <= 0) {
+        throw Exception(
+          'O tamanho do bloco ($blockWidth x $blockHeight) é maior que a imagem ($imgW x $imgH).',
+        );
+      }
+
+      final List<List<RgbColor>> matrix = List.generate(
+        rows,
+        (_) => List.filled(cols, const RgbColor(0, 0, 0)),
+      );
+
+      final int gridStep = _progressiveStep(rows);
+      for (int r = 0; r < rows; r++) {
+        for (int c = 0; c < cols; c++) {
+          final int startX = c * blockWidth;
+          final int startY = r * blockHeight;
+
+          double sumR = 0;
+          double sumG = 0;
+          double sumB = 0;
+          int count = 0;
+
+          for (int y = 0; y < blockHeight; y++) {
+            for (int x = 0; x < blockWidth; x++) {
+              final int pixelX = startX + x;
+              final int pixelY = startY + y;
+
+              if (pixelX < imgW && pixelY < imgH) {
+                final int idx = (pixelY * imgW + pixelX) * 3;
+                sumB += bgrData[idx];
+                sumG += bgrData[idx + 1];
+                sumR += bgrData[idx + 2];
+                count++;
+              }
             }
+          }
+
+          if (count > 0) {
+            matrix[r][c] = RgbColor(sumR / count, sumG / count, sumB / count);
           }
         }
 
-        if (count > 0) {
-          matrix[r][c] = RgbColor(sumR / count, sumG / count, sumB / count);
+        final bool emitGridFrame = r == 0 || r == rows - 1 || (r + 1) % gridStep == 0;
+        if (emitGridFrame && onSnapshot != null) {
+          _emitSnapshot(onSnapshot, AnalysisPipelineSnapshot(
+            stageId: 'grid',
+            imageJpeg: previewJpeg,
+            imageWidth: previewW,
+            imageHeight: previewH,
+            gridRows: rows,
+            gridCols: cols,
+            blockWidth: blockWidth,
+            blockHeight: blockHeight,
+            revealedGridRows: r + 1,
+            stageProgress: (r + 1) / rows,
+          ));
         }
       }
-    }
 
-    return matrix;
+      final int dotIndex = imageFile.path.lastIndexOf('.');
+      final String processedPath = dotIndex != -1
+          ? '${imageFile.path.substring(0, dotIndex)}_processed${imageFile.path.substring(dotIndex)}'
+          : '${imageFile.path}_processed';
+
+      final cv.VecI32 encodeParams = cv.VecI32.fromList([
+        cv.IMWRITE_JPEG_QUALITY,
+        85,
+      ]);
+      final (_, Uint8List jpgBytes) = cv.imencode('.jpg', processedMat, params: encodeParams);
+      encodeParams.dispose();
+      await File(processedPath).writeAsBytes(jpgBytes);
+
+      _emitSnapshot(onSnapshot, AnalysisPipelineSnapshot(
+        stageId: 'grid',
+        imageJpeg: previewJpeg,
+        imageWidth: previewW,
+        imageHeight: previewH,
+        gridRows: rows,
+        gridCols: cols,
+        blockWidth: blockWidth,
+        blockHeight: blockHeight,
+        revealedGridRows: rows,
+        stageProgress: 1.0,
+      ));
+
+      final ImageBlockGrid result = ImageBlockGrid(
+        matrix: matrix,
+        processedImagePath: processedPath,
+        imageWidth: imgW,
+        imageHeight: imgH,
+      );
+      processedMat.dispose();
+      processedMat = null;
+      return result;
+    } finally {
+      processedMat?.dispose();
+      decoded.dispose();
+    }
   }
+
 
   /// Generates a visual chlorophyll heatmap image based on a matrix of chlorophyll index values,
   /// color-coded from low (deficiency - red) to high (healthy - vibrant green),
@@ -118,10 +314,10 @@ class ImageAnalysisHelper {
     // Resize original image to match heatmap dimensions exactly
     final img.Image heatmapImage = img.copyResize(baseImage, width: width, height: height);
 
-    // Color gradient interpolation helper
-    // Clamps index values between 15.0 and 65.0 to represent a typical SPAD scale for pasture
-    const double minSpad = 15.0;
-    const double maxSpad = 65.0;
+    // Color gradient interpolation helper matching matplotlib's RdYlGn colormap
+    // Clamps index values between 25.0 and 55.0 to represent a typical SPAD scale for pasture with high contrast
+    const double minSpad = 25.0;
+    const double maxSpad = 55.0;
 
     for (int r = 0; r < rows; r++) {
       for (int c = 0; c < cols; c++) {
@@ -134,24 +330,30 @@ class ImageAnalysisHelper {
           int green = 0;
           int blue = 0;
 
-          if (norm <= 0.3) {
-            // Interpolate between Red [255, 0, 0] and Orange [255, 165, 0]
-            final double t = norm / 0.3;
-            red = 255;
-            green = (0 + 165 * t).round();
-            blue = 0;
-          } else if (norm <= 0.6) {
-            // Interpolate between Orange [255, 165, 0] and Light Green [139, 195, 74]
-            final double t = (norm - 0.3) / 0.3;
-            red = (255 + (139 - 255) * t).round();
-            green = (165 + (195 - 165) * t).round();
-            blue = (0 + 74 * t).round();
+          if (norm <= 0.25) {
+            // Interpolate from Red [165, 0, 38] to Orange-Red [244, 109, 67]
+            final double t = norm / 0.25;
+            red = (165 + (244 - 165) * t).round();
+            green = (0 + 109 * t).round();
+            blue = (38 + (67 - 38) * t).round();
+          } else if (norm <= 0.5) {
+            // Interpolate from Orange-Red [244, 109, 67] to Yellow [253, 224, 117]
+            final double t = (norm - 0.25) / 0.25;
+            red = (244 + (253 - 244) * t).round();
+            green = (109 + (224 - 109) * t).round();
+            blue = (67 + (117 - 67) * t).round();
+          } else if (norm <= 0.75) {
+            // Interpolate from Yellow [253, 224, 117] to Light Green [166, 217, 106]
+            final double t = (norm - 0.5) / 0.25;
+            red = (253 + (166 - 253) * t).round();
+            green = (224 + (217 - 224) * t).round();
+            blue = (117 + (106 - 117) * t).round();
           } else {
-            // Interpolate between Light Green [139, 195, 74] and Dark Green [27, 94, 32]
-            final double t = (norm - 0.6) / 0.4;
-            red = (139 + (27 - 139) * t).round();
-            green = (195 + (94 - 195) * t).round();
-            blue = (74 + (32 - 74) * t).round();
+            // Interpolate from Light Green [166, 217, 106] to Dark Green [26, 152, 80]
+            final double t = (norm - 0.75) / 0.25;
+            red = (166 + (26 - 166) * t).round();
+            green = (217 + (152 - 217) * t).round();
+            blue = (106 + (80 - 106) * t).round();
           }
 
           // Blending factor: alpha = 160/255 = 0.63 opacity

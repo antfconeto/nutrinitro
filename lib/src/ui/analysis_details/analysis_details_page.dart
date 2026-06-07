@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -18,6 +19,10 @@ import 'package:nutrinitro/src/data/models/image_model.dart';
 import 'package:nutrinitro/src/data/services/analysis/analysis_registry.dart';
 import 'package:nutrinitro/src/ui/analysis_details/analysis_details_state.dart';
 import 'package:nutrinitro/src/ui/analysis_details/analysis_details_view_model.dart';
+import 'package:nutrinitro/src/ui/analysis_details/analysis_pipeline_viewer.dart';
+import 'package:nutrinitro/src/ui/analysis_details/analysis_stage_panel.dart';
+import 'package:nutrinitro/src/core/config/env.dart';
+import 'package:nutrinitro/src/core/utils/debug_analysis_exporter.dart';
 import 'package:nutrinitro/src/core/utils/pdf_exporter.dart';
 
 class AnalysisDetailsPage extends ConsumerStatefulWidget {
@@ -47,96 +52,193 @@ class _AnalysisDetailsPageState extends ConsumerState<AnalysisDetailsPage> {
       compatibleAnalyses = AnalysisRegistry.all;
     }
 
+    // Dynamically initialize selection only with analyses compatible with the current crop
+    final Set<String> selectedBaseAnalyses = compatibleAnalyses.map((a) => a.id).toSet();
+    const int selectedBlockSize = 10;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (sheetContext) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.grayLight,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               ),
-              const SizedBox(height: 24),
-              Text(
-                'Escolha a Análise Agronômica',
-                style: AppText.medium.copyWith(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.navy,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Esta cultura (${cropName ?? "Não especificada"}) suporta as seguintes análises:',
-                style: AppText.small.copyWith(color: AppColors.grayMedium),
-              ),
-              const SizedBox(height: 16),
-              ...compatibleAnalyses.map((analisador) {
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  elevation: 0,
-                  color: AppColors.grayLight.withOpacity(0.3),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: const BorderSide(color: AppColors.grayLight),
-                  ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    leading: CircleAvatar(
-                      backgroundColor: AppColors.green.withOpacity(0.1),
-                      child: Icon(
-                        analisador.id.startsWith('chlorophyll')
-                            ? Icons.biotech_outlined
-                            : Icons.analytics_outlined,
-                        color: AppColors.green,
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.grayLight,
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                    title: Text(
-                      analisador.name,
-                      style: AppText.medium.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.navy,
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      const Icon(Icons.playlist_add_check_outlined, color: AppColors.green, size: 28),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Configurar Análise',
+                        style: AppText.medium.copyWith(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.navy,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Selecione quais modelos e análises deseja rodar de forma combinada e offline para ${cropName ?? "esta cultura"}:',
+                    style: AppText.small.copyWith(color: AppColors.grayMedium),
+                  ),
+                  const SizedBox(height: 20),
+                  
+                  ...compatibleAnalyses.map((analisador) {
+                    final bool isChecked = selectedBaseAnalyses.contains(analisador.id);
+                    
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      elevation: 0,
+                      color: isChecked 
+                          ? AppColors.green.withOpacity(0.04) 
+                          : AppColors.grayLight.withOpacity(0.3),   
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(
+                          color: isChecked ? AppColors.green.withOpacity(0.3) : AppColors.grayLight,
+                          width: isChecked ? 1.5 : 1,
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            leading: CircleAvatar(
+                              backgroundColor: isChecked 
+                                  ? AppColors.green.withOpacity(0.12)
+                                  : AppColors.grayLight,
+                              child: Icon(
+                                Icons.biotech_outlined,
+                                color: isChecked ? AppColors.green : AppColors.grayMedium,
+                              ),
+                            ),
+                            title: Text(
+                              analisador.name,
+                              style: AppText.medium.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.navy,
+                                fontSize: 15,
+                              ),
+                            ),
+                            subtitle: Padding(
+                              padding: const EdgeInsets.only(top: 4.0),
+                              child: Text(
+                                'Mede clorofila foliar (SPAD) e teor de nitrogênio (g/kg) via MLP rgb28.',
+                                style: AppText.small.copyWith(fontSize: 11, color: AppColors.grayMedium),
+                              ),
+                            ),
+                            trailing: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: Checkbox(
+                                activeColor: AppColors.green,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                value: isChecked,
+                                onChanged: (val) {
+                                  setState(() {
+                                    if (val == true) {
+                                      selectedBaseAnalyses.add(analisador.id);
+                                    } else {
+                                      selectedBaseAnalyses.remove(analisador.id);
+                                    }
+                                  });
+                                },
+                              ),
+                            ),
+                            onTap: () {
+                              setState(() {
+                                if (isChecked) {
+                                  selectedBaseAnalyses.remove(analisador.id);
+                                } else {
+                                  selectedBaseAnalyses.add(analisador.id);
+                                }
+                              });
+                            },
+                          ),
+
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                  
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.green.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppColors.green.withOpacity(0.2)),
+                    ),
+                    child: Text(
+                      'Predição por parcela com modelo definitivo (bilateral, ExG>0.15, grade 10×10, R²≈0.75).',
+                      style: AppText.small.copyWith(fontSize: 11, color: AppColors.navy),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+                  
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: selectedBaseAnalyses.isEmpty
+                          ? null
+                          : () {
+                              Navigator.pop(sheetContext);
+                              ref.read(analysisDetailsViewModelProvider.notifier).startAnalysis(
+                                selectedBaseAnalyses.toList(),
+                                blockSize: selectedBlockSize,
+                              );
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.green,
+                        foregroundColor: AppColors.white,
+                        disabledBackgroundColor: AppColors.grayLight,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        selectedBaseAnalyses.isEmpty 
+                            ? 'Selecione pelo menos uma análise'
+                            : 'Iniciar ${selectedBaseAnalyses.length} Análise${selectedBaseAnalyses.length > 1 ? 's' : ''}',
+                        style: AppText.button.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: selectedBaseAnalyses.isEmpty ? AppColors.grayMedium : AppColors.white,
+                        ),
                       ),
                     ),
-                    subtitle: Text(
-                      'Cultura: ${analisador.supportedCropNames.join(", ")}',
-                      style: AppText.small.copyWith(fontSize: 11, color: AppColors.grayMedium),
-                    ),
-                    trailing: const Icon(Icons.chevron_right, color: AppColors.green),
-                    onTap: () {
-                      Navigator.pop(sheetContext);
-                      if (analisador.methods.isNotEmpty) {
-                        Future.delayed(const Duration(milliseconds: 250), () {
-                          if (context.mounted) {
-                            _showMethodSelector(context, analisador);
-                          }
-                        });
-                      } else {
-                        ref.read(analysisDetailsViewModelProvider.notifier).startAnalysis(analisador.id);
-                      }
-                    },
                   ),
-                );
-              }).toList(),
-              const SizedBox(height: 16),
-            ],
-          ),
+                ],
+              ),
+            );
+          },
         );
       },
     );
@@ -258,7 +360,7 @@ class _AnalysisDetailsPageState extends ConsumerState<AnalysisDetailsPage> {
         trailing: const Icon(Icons.play_arrow_outlined, color: AppColors.green),
         onTap: () {
           Navigator.pop(context);
-          ref.read(analysisDetailsViewModelProvider.notifier).startAnalysis(methodId);
+          ref.read(analysisDetailsViewModelProvider.notifier).startAnalysis([methodId]);
         },
       ),
     );
@@ -379,47 +481,233 @@ class _AnalysisDetailsPageState extends ConsumerState<AnalysisDetailsPage> {
       }
     });
 
-    return Scaffold(
-      backgroundColor: AppColors.grayLight,
-      appBar: AppBar(
-        title: const Text('Detalhes da Análise'),
-        backgroundColor: AppColors.green,
-        foregroundColor: AppColors.white,
-        elevation: 0,
-        actions: [
-          if (state.analysis != null && !state.analysis!.isProcessing) ...[
-            if (state.analysis!.isCompleted)
+    return PopScope(
+      canPop: !state.isAnalyzing,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final bool shouldCancel = await _showCancelConfirmationDialog(context) ?? false;
+        if (shouldCancel && context.mounted) {
+          ref.read(analysisDetailsViewModelProvider.notifier).cancelAnalysis();
+          Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.grayLight,
+        appBar: AppBar(
+          title: const Text('Detalhes da Análise'),
+          backgroundColor: AppColors.green,
+          foregroundColor: AppColors.white,
+          elevation: 0,
+          actions: [
+            if (state.analysis != null && !state.analysis!.isProcessing) ...[
+              if ((kDebugMode || Env.debug) && state.analysis!.images.isNotEmpty)
+                IconButton(
+                  icon: const Icon(Icons.bug_report_outlined),
+                  tooltip: 'Exportar JSON (debug)',
+                  onPressed: () {
+                    DebugAnalysisExporter.showExportSheet(context, state.analysis!);
+                  },
+                ),
+              if (state.analysis!.isCompleted)
+                IconButton(
+                  icon: const Icon(Icons.picture_as_pdf_outlined),
+                  tooltip: 'Exportar PDF',
+                  onPressed: () async {
+                    try {
+                      await PdfExporter.exportAnalysis(state.analysis!, context);
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Erro ao exportar PDF: $e'),
+                          backgroundColor: AppColors.tomato,
+                        ),
+                      );
+                    }
+                  },
+                ),
               IconButton(
-                icon: const Icon(Icons.picture_as_pdf_outlined),
-                tooltip: 'Exportar PDF',
-                onPressed: () async {
-                  try {
-                    await PdfExporter.exportAnalysis(state.analysis!, context);
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Erro ao exportar PDF: $e'),
-                        backgroundColor: AppColors.tomato,
-                      ),
-                    );
-                  }
-                },
+                icon: const Icon(Icons.refresh),
+                tooltip: 'Recarregar',
+                onPressed: () =>
+                    ref.read(analysisDetailsViewModelProvider.notifier).fetchDetails(),
               ),
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              tooltip: 'Recarregar',
-              onPressed: () =>
-                  ref.read(analysisDetailsViewModelProvider.notifier).fetchDetails(),
-            ),
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              tooltip: 'Deletar Análise',
-              onPressed: () => _confirmDelete(context, state.analysis!.id!),
-            ),
+              IconButton(
+                icon: const Icon(Icons.delete_outline),
+                tooltip: 'Deletar Análise',
+                onPressed: () => _confirmDelete(context, state.analysis!.id!),
+              ),
+            ],
           ],
+        ),
+        body: _buildBody(context, state),
+      ),
+    );
+  }
+
+  Future<bool?> _showCancelConfirmationDialog(BuildContext context) {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Cancelar Análise?'),
+        content: const Text('A análise está em andamento. Se você sair agora, a operação será cancelada e o progresso atual será perdido.'),
+        actions: [
+          TextButton(
+            child: const Text('Continuar Análise', style: TextStyle(color: AppColors.green, fontWeight: FontWeight.bold)),
+            onPressed: () => Navigator.of(ctx).pop(false),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.tomato,
+              foregroundColor: AppColors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Cancelar e Sair'),
+            onPressed: () => Navigator.of(ctx).pop(true),
+          ),
         ],
       ),
-      body: _buildBody(context, state),
+    );
+  }
+
+  Widget _buildBlockSizeOption({
+    required StateSetter setModalState,
+    required int size,
+    required String label,
+    required String subtitle,
+    required int currentSelected,
+    required VoidCallback onTap,
+  }) {
+    final bool isSelected = currentSelected == size;
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.green.withOpacity(0.08) : AppColors.grayLight.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isSelected ? AppColors.green : AppColors.grayLight,
+              width: isSelected ? 2 : 1,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                size == 10 
+                    ? Icons.grid_view_outlined 
+                    : size == 5 
+                        ? Icons.grid_on_outlined 
+                        : Icons.grid_3x3_outlined,
+                color: isSelected ? AppColors.green : AppColors.grayMedium,
+                size: 24,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                style: AppText.medium.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.navy,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: AppText.small.copyWith(
+                  color: isSelected ? AppColors.green : AppColors.grayMedium,
+                  fontSize: 10,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLiveEstimatedTile(String label, String value, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.white.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.white.withOpacity(0.1), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: AppColors.green, size: 20),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(color: AppColors.grayLight, fontSize: 10),
+              ),
+              Text(
+                value,
+                style: AppText.medium.copyWith(
+                  color: AppColors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLiveResultSummary(Map<String, dynamic> result) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.navy.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.green.withOpacity(0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.check_circle, color: AppColors.green, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                'Estimativa da parcela',
+                style: AppText.small.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.navy,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (result['chlorophyll_spad'] != null)
+            Text(
+              'Clorofila: ${result['chlorophyll_spad']}',
+              style: AppText.small.copyWith(color: AppColors.navy),
+            ),
+          if (result['nitrogen_content'] != null)
+            Text(
+              'Nitrogênio: ${result['nitrogen_content']}',
+              style: AppText.small.copyWith(color: AppColors.navy),
+            ),
+          if (result['estimated_biomass'] != null)
+            Text(
+              'Biomassa: ${result['estimated_biomass']}',
+              style: AppText.small.copyWith(color: AppColors.navy),
+            ),
+        ],
+      ),
     );
   }
 
@@ -715,43 +1003,25 @@ class _AnalysisDetailsPageState extends ConsumerState<AnalysisDetailsPage> {
                       fontSize: 11,
                     ),
                   ),
-                  if (state.liveScanningMatrix != null) ...[
+                  if (state.isAnalyzing) ...[
                     const SizedBox(height: 12),
                     Builder(
                       builder: (context) {
-                        final int rows = state.liveScanningMatrix!.length;
-                        final int cols = rows > 0 ? state.liveScanningMatrix![0].length : 0;
-                        final double aspectRatio = cols > 0 && rows > 0 ? cols / rows : 4 / 3;
+                        final stages = stagesForAnalysisType(state.currentAnalyzingType);
 
-                        final int currIdx = (state.currentAnalyzingImageIndex - 1).clamp(0, analysis.images.length - 1);
-                        final imgPath = analysis.images[currIdx].originalPath;
-
-                        return Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppColors.green.withOpacity(0.2), width: 1),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: AspectRatio(
-                              aspectRatio: aspectRatio,
-                              child: Stack(
-                                children: [
-                                  Positioned.fill(
-                                    child: Image.file(
-                                      File(imgPath),
-                                      fit: BoxFit.fill,
-                                    ),
-                                  ),
-                                  Positioned.fill(
-                                    child: CustomPaint(
-                                      painter: LiveScanningPainter(state.liveScanningMatrix!),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            AnalysisPipelineViewer(
+                              snapshot: state.currentPipelineSnapshot,
+                              stages: stages,
+                              currentStage: state.currentAnalysisStage,
                             ),
-                          ),
+                            if (state.currentEstimatedResult != null) ...[
+                              const SizedBox(height: 10),
+                              _buildLiveResultSummary(state.currentEstimatedResult!),
+                            ],
+                          ],
                         );
                       },
                     ),
@@ -1234,8 +1504,10 @@ class _AnalysisDetailsPageState extends ConsumerState<AnalysisDetailsPage> {
                           if (img.wasAnalyzed && img.result != null) {
                             try {
                               final data = json.decode(img.result!);
-                              if (data is Map && data.containsKey('cropped_original_path')) {
-                                backgroundPath = data['cropped_original_path'] as String;
+                              if (data is Map) {
+                                backgroundPath = (data['processed_image_path']
+                                        ?? data['cropped_original_path'])
+                                    as String? ?? backgroundPath;
                               }
                             } catch (_) {}
                           }
@@ -1304,46 +1576,58 @@ class _AnalysisDetailsPageState extends ConsumerState<AnalysisDetailsPage> {
                       Positioned(
                         top: 12,
                         right: activeImage.hasLocation ? 48 : 12,
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _showAnalyzedOverlay = !_showAnalyzedOverlay;
-                            });
+                        child: Builder(
+                          builder: (context) {
+                            bool hasHeatmap = false;
+                            if (activeImage.result != null) {
+                              try {
+                                final data = jsonDecode(activeImage.result!) as Map<String, dynamic>;
+                                hasHeatmap = data['heatmap_path'] != null;
+                              } catch (_) {}
+                            }
+                            final String overlayOffLabel = hasHeatmap ? 'Ver Heatmap' : 'Ver Processada';
+                            return GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _showAnalyzedOverlay = !_showAnalyzedOverlay;
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: _showAnalyzedOverlay ? AppColors.green : AppColors.navy.withOpacity(0.8),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: AppColors.white.withOpacity(0.4), width: 1),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.2),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      _showAnalyzedOverlay ? Icons.visibility : Icons.map_outlined,
+                                      color: AppColors.white,
+                                      size: 14,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      _showAnalyzedOverlay ? 'Ver Original' : overlayOffLabel,
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
                           },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: _showAnalyzedOverlay ? AppColors.green : AppColors.navy.withOpacity(0.8),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: AppColors.white.withOpacity(0.4), width: 1),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  _showAnalyzedOverlay ? Icons.visibility : Icons.visibility_off,
-                                  color: AppColors.white,
-                                  size: 14,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  _showAnalyzedOverlay ? 'Ver Original' : 'Ver Mapa Calor',
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
                         ),
                       ),
                     if (activeImage.hasLocation)
@@ -1452,7 +1736,16 @@ class _AnalysisDetailsPageState extends ConsumerState<AnalysisDetailsPage> {
                               ),
                             ),
                             const SizedBox(width: 12),
-                            if (resultJson.containsKey('nitrogen_content')) ...[
+                            if (resultJson.containsKey('estimated_biomass')) ...[
+                              Expanded(
+                                child: _buildMetricTile(
+                                  Icons.scale_outlined,
+                                  'Biomassa',
+                                  resultJson['estimated_biomass'] ?? 'N/A',
+                                  AppColors.greenDark,
+                                ),
+                              ),
+                            ] else if (resultJson.containsKey('nitrogen_content')) ...[
                               Expanded(
                                 child: _buildMetricTile(
                                   Icons.grass_outlined,
@@ -1473,7 +1766,22 @@ class _AnalysisDetailsPageState extends ConsumerState<AnalysisDetailsPage> {
                             ],
                           ],
                         ),
-                        if (resultJson.containsKey('nitrogen_content')) ...[
+                        if (resultJson.containsKey('nitrogen_content') && resultJson.containsKey('estimated_biomass')) ...[
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildMetricTile(
+                                  Icons.grass_outlined,
+                                  'Nitrogênio',
+                                  resultJson['nitrogen_content'] ?? 'N/A',
+                                  AppColors.greenDark,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                        if (resultJson.containsKey('estimated_biomass') || resultJson.containsKey('nitrogen_content')) ...[
                           const SizedBox(height: 12),
                           Row(
                             children: [
@@ -1799,8 +2107,10 @@ class _FullScreenImagePageState extends State<FullScreenImagePage> {
           if (img.wasAnalyzed && img.result != null) {
             try {
               final data = json.decode(img.result!);
-              if (data is Map && data.containsKey('cropped_original_path')) {
-                backgroundPath = data['cropped_original_path'] as String;
+              if (data is Map) {
+                backgroundPath = (data['processed_image_path']
+                        ?? data['cropped_original_path'])
+                    as String? ?? backgroundPath;
               }
             } catch (_) {}
           }
@@ -1841,66 +2151,6 @@ class _FullScreenImagePageState extends State<FullScreenImagePage> {
       ),
     );
   }
-}
-
-class LiveScanningPainter extends CustomPainter {
-  final List<List<double>> matrix;
-
-  LiveScanningPainter(this.matrix);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final int rows = matrix.length;
-    final int cols = rows > 0 ? matrix[0].length : 0;
-    if (rows == 0 || cols == 0) return;
-
-    final double blockWidth = size.width / cols;
-    final double blockHeight = size.height / rows;
-
-    const double minSpad = 15.0;
-    const double maxSpad = 65.0;
-
-    final Paint paint = Paint()..style = PaintingStyle.fill;
-
-    for (int r = 0; r < rows; r++) {
-      for (int c = 0; c < cols; c++) {
-        final double spad = matrix[r][c];
-        if (spad == 0.0) {
-          // Not processed yet
-          continue;
-        }
-
-        if (spad >= 0.0) {
-          final double norm = ((spad - minSpad) / (maxSpad - minSpad)).clamp(0.0, 1.0);
-          Color color;
-          if (norm <= 0.3) {
-            final double t = norm / 0.3;
-            color = Color.lerp(const Color(0xFFFF0000), const Color(0xFFFFA500), t)!;
-          } else if (norm <= 0.6) {
-            final double t = (norm - 0.3) / 0.3;
-            color = Color.lerp(const Color(0xFFFFA500), const Color(0xFF8BC34A), t)!;
-          } else {
-            final double t = (norm - 0.6) / 0.4;
-            color = Color.lerp(const Color(0xFF8BC34A), const Color(0xFF1B5E20), t)!;
-          }
-
-          paint.color = color.withOpacity(0.63);
-          canvas.drawRect(
-            Rect.fromLTWH(
-              c * blockWidth,
-              r * blockHeight,
-              blockWidth,
-              blockHeight,
-            ),
-            paint,
-          );
-        }
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant LiveScanningPainter oldDelegate) => true;
 }
 
 class _ScanningLineWidget extends StatefulWidget {

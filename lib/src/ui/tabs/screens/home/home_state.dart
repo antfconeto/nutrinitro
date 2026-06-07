@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:equatable/equatable.dart';
 import 'package:nutrinitro/src/data/models/crop_model.dart';
 import 'package:nutrinitro/src/data/services/analysis/analysis_registry.dart';
@@ -14,7 +15,9 @@ class HomeState extends Equatable {
   final String? notes;
   final List<CropModel> crops;
   final CropModel? selectedCrop;
-  final List<File> images;
+  final List<File>? images;
+  /// Nome original da galeria (paralelo a [images], mesmo índice).
+  final List<String?>? imageSourceNames;
   final List<RegisteredAnalysis> analyses;
   final RegisteredAnalysis? selectedAnalysis;
 
@@ -29,21 +32,33 @@ class HomeState extends Equatable {
     this.notes,
     this.crops = const [],
     this.selectedCrop,
-    this.images = const [],
+    this.images = const <File>[],
+    this.imageSourceNames = const <String?>[],
     this.analyses = const [],
     this.selectedAnalysis,
   });
+
+  List<File> get resolvedImages => images ?? const <File>[];
 
   bool get isFormValid =>
       title.isNotEmpty &&
       datetime != null &&
       selectedCrop != null &&
-      images.isNotEmpty;
+      resolvedImages.isNotEmpty;
 
   bool get titleError => submitted && title.isEmpty;
   bool get datetimeError => submitted && datetime == null;
   bool get cropError => submitted && selectedCrop == null;
-  bool get imagesError => submitted && images.isEmpty;
+  bool get imagesError => submitted && resolvedImages.isEmpty;
+
+  List<String?> get resolvedImageSourceNames =>
+      imageSourceNames ?? const <String?>[];
+
+  String? sourceNameAt(int index) {
+    final names = resolvedImageSourceNames;
+    if (index < 0 || index >= names.length) return null;
+    return names[index];
+  }
 
   HomeState copyWith({
     bool? isLoading,
@@ -57,6 +72,7 @@ class HomeState extends Equatable {
     List<CropModel>? crops,
     CropModel? selectedCrop,
     List<File>? images,
+    List<String?>? imageSourceNames,
     List<RegisteredAnalysis>? analyses,
     RegisteredAnalysis? selectedAnalysis,
     bool clearError = false,
@@ -81,7 +97,8 @@ class HomeState extends Equatable {
       selectedCrop: clearSelectedCrop
           ? null
           : (selectedCrop ?? this.selectedCrop),
-      images: images ?? this.images,
+      images: images ?? this.resolvedImages,
+      imageSourceNames: imageSourceNames ?? this.resolvedImageSourceNames,
       analyses: analyses ?? this.analyses,
       selectedAnalysis: clearSelectedAnalysis
           ? null
@@ -102,6 +119,7 @@ class HomeState extends Equatable {
     crops,
     selectedCrop,
     images,
+    imageSourceNames,
     analyses,
     selectedAnalysis,
   ];

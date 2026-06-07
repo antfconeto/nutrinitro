@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import 'package:nutrinitro/src/data/models/local_image_pick.dart';
 
 class CameraService {
   final ImagePicker _picker = ImagePicker();
@@ -20,10 +21,12 @@ class CameraService {
   }
 
   /// Picks multiple images from the gallery at full quality
-  Future<List<File>> pickMultipleFromGallery() async {
+  Future<List<LocalImagePick>> pickMultipleFromGallery() async {
     try {
       final photos = await _picker.pickMultiImage();
-      return photos.map((xfile) => File(xfile.path)).toList();
+      return photos
+          .map((xfile) => LocalImagePick(File(xfile.path), xfile.name, xfile))
+          .toList();
     } catch (e) {
       rethrow;
     }
