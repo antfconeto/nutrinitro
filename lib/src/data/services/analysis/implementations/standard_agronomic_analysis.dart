@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:isolate';
 
-import 'package:nutrinitro/src/data/services/analysis/registered_analysis.dart';
+import 'package:nutrinitro/src/data/services/analysis/core/registered_analysis.dart';
 
 class StandardAgronomicAnalysis extends RegisteredAnalysis {
   @override
@@ -9,6 +9,10 @@ class StandardAgronomicAnalysis extends RegisteredAnalysis {
 
   @override
   String get name => 'Análise Agronômica Padrão';
+
+  @override
+  String get description =>
+      'Análise agronômica simulada com estimativas de umidade, proteína e qualidade (em desenvolvimento).';
 
   @override
   List<String> get supportedCropNames => ['Milho', 'Feijao'];
@@ -19,6 +23,7 @@ class StandardAgronomicAnalysis extends RegisteredAnalysis {
     SendPort? progressPort,
     int blockSize = 10,
     String? analysisType,
+    String? recipeJson,
   }) async {
     await Future.delayed(const Duration(seconds: 2));
     return {

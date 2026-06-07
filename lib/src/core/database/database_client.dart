@@ -1,3 +1,5 @@
+import 'package:nutrinitro/src/data/repositories/recipe/analysis_recipe_repository.dart';
+import 'package:nutrinitro/src/data/services/analysis/recipe/catalog/recipe_seed_service.dart';
 import 'package:path/path.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sqflite/sqflite.dart';
@@ -9,21 +11,32 @@ Future<Database> databaseClient(Ref ref) async {
   final dbPath = await getDatabasesPath();
   final path = join(dbPath, 'nutrinitro.db');
 
-  return openDatabase(
+  final db = await openDatabase(
     path,
-    version: 2,
+    version: 3,
     onCreate: _onCreate,
     onUpgrade: _onUpgrade,
   );
+
+  await _seedRecipesIfNeeded(db);
+  return db;
+}
+
+Future<void> _seedRecipesIfNeeded(Database db) async {
+  final repository = AnalysisRecipeRepository(db);
+  final seedService = RecipeSeedService(repository);
+  await seedService.seedFromAssets();
+  await seedService.seedCropBindings(db);
 }
 
 Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
   if (oldVersion < 2) {
     try {
-      await db.execute('ALTER TABLE analyses ADD COLUMN analysis_type TEXT NOT NULL DEFAULT "agronomic"');
+      await db.execute(
+        'ALTER TABLE analyses ADD COLUMN analysis_type TEXT NOT NULL DEFAULT "agronomic"',
+      );
     } catch (_) {}
 
-    // Seed Capim Marandu if not present
     final count = Sqflite.firstIntValue(await db.rawQuery(
       "SELECT COUNT(*) FROM crops WHERE name = ?",
       ['Capim Marandu'],
@@ -33,11 +46,45 @@ Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
       await db.insert('crops', {
         'name': 'Capim Marandu',
         'icon': 'assets/images/crops/grass.png',
-        'analysis_data_json':
-            '{"crop":"marandu_grass","parameters":{"chlorophyll":42.5}}',
+        'analysis_data_json': RecipeSeedService.maranduCropAnalysisDataJson,
       });
     }
   }
+
+  if (oldVersion < 3) {
+    await _createRecipeTables(db);
+    await db.update(
+      'crops',
+      {'analysis_data_json': RecipeSeedService.maranduCropAnalysisDataJson},
+      where: 'name = ?',
+      whereArgs: ['Capim Marandu'],
+    );
+  }
+}
+
+Future<void> _createRecipeTables(Database db) async {
+  await db.execute('''
+    CREATE TABLE IF NOT EXISTS analysis_recipes (
+      id          TEXT PRIMARY KEY,
+      name        TEXT NOT NULL,
+      version     TEXT NOT NULL,
+      targets     TEXT NOT NULL,
+      recipe_json TEXT NOT NULL,
+      is_active   INTEGER NOT NULL DEFAULT 1,
+      created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  ''');
+
+  await db.execute('''
+    CREATE TABLE IF NOT EXISTS crop_recipe_bindings (
+      crop_id    INTEGER NOT NULL,
+      recipe_id  TEXT NOT NULL,
+      is_default INTEGER NOT NULL DEFAULT 1,
+      PRIMARY KEY (crop_id, recipe_id),
+      FOREIGN KEY (crop_id) REFERENCES crops(id),
+      FOREIGN KEY (recipe_id) REFERENCES analysis_recipes(id)
+    )
+  ''');
 }
 
 Future<void> _onCreate(Database db, int version) async {
@@ -78,6 +125,7 @@ Future<void> _onCreate(Database db, int version) async {
     )
   ''');
 
+  await _createRecipeTables(db);
   await _seedCrops(db);
 }
 
@@ -98,8 +146,7 @@ Future<void> _seedCrops(Database db) async {
     {
       'name': 'Capim Marandu',
       'icon': 'assets/images/crops/grass.png',
-      'analysis_data_json':
-          '{"crop":"marandu_grass","parameters":{"chlorophyll":42.5}}',
+      'analysis_data_json': RecipeSeedService.maranduCropAnalysisDataJson,
     },
   ];
 

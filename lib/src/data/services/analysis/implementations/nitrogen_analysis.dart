@@ -1,32 +1,28 @@
 import 'dart:io';
 import 'dart:isolate';
 
-import 'package:nutrinitro/src/data/services/analysis/chlorophyll_analysis_pipeline.dart';
-import 'package:nutrinitro/src/data/services/analysis/registered_analysis.dart';
+import 'package:nutrinitro/src/data/models/recipe/analysis_recipe.dart';
+import 'package:nutrinitro/src/data/services/analysis/recipe/pipeline/pipeline_executor.dart';
+import 'package:nutrinitro/src/data/services/analysis/recipe/validation/recipe_validator.dart';
+import 'package:nutrinitro/src/data/services/analysis/core/registered_analysis.dart';
 
-/// Análise de clorofila (SPAD) e nitrogênio foliar via MLP rgb28 definitiva.
+/// Análise de nutrientes (clorofila, nitrogênio, etc.) via receita da cultura.
 class NitrogenAnalysis extends RegisteredAnalysis {
-  final ChlorophyllAnalysisPipeline _pipeline = ChlorophyllAnalysisPipeline();
+  final PipelineExecutor _executor = PipelineExecutor();
+  final RecipeValidator _validator = const RecipeValidator();
 
   @override
   String get id => 'nitrogen';
 
   @override
-  String get name => 'Análise de Nitrogênio';
+  String get name => 'Análise de Nutrientes';
 
   @override
-  List<String> get supportedCropNames => ['Capim Marandu'];
+  String get description =>
+      'Predição de nitrogênio foliar (g/kg) por modelo linear a partir do SPAD.';
 
   @override
-  List<AnalysisMethod> get methods => const [
-    AnalysisMethod(
-      id: 'nitrogen_mlp',
-      name: 'MLP Campeã (rgb28)',
-      description:
-          'Predição por parcela: bilateral, ExG>0.15, grade 10×10, 28 features (R² OOF ≈ 0.75).',
-      iconName: 'psychology',
-    ),
-  ];
+  List<String> get supportedCropNames => const [];
 
   @override
   Future<Map<String, dynamic>> run(
@@ -34,7 +30,16 @@ class NitrogenAnalysis extends RegisteredAnalysis {
     SendPort? progressPort,
     int blockSize = 10,
     String? analysisType,
-  }) {
-    return _pipeline.run(imageFile, progressPort: progressPort);
+    String? recipeJson,
+  }) async {
+    if (recipeJson == null || recipeJson.isEmpty) {
+      throw StateError(
+        'NitrogenAnalysis requires recipeJson resolved from the database before execution.',
+      );
+    }
+
+    final AnalysisRecipe recipe = AnalysisRecipe.fromJsonString(recipeJson);
+    _validator.validate(recipe);
+    return _executor.run(recipe, imageFile, progressPort: progressPort);
   }
 }

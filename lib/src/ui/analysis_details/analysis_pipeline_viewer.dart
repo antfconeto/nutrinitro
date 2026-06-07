@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:nutrinitro/src/core/themes/app_colors.dart';
 import 'package:nutrinitro/src/core/themes/app_text.dart';
-import 'package:nutrinitro/src/data/services/analysis/analysis_progress.dart';
+import 'package:nutrinitro/src/data/services/analysis/core/analysis_progress.dart';
 import 'package:nutrinitro/src/ui/analysis_details/analysis_stage_panel.dart';
 
 class AnalysisPipelineViewer extends StatefulWidget {
@@ -88,17 +88,10 @@ class _AnalysisPipelineViewerState extends State<AnalysisPipelineViewer>
   }
 
   String _stageLabel(String stageId) {
-    return switch (stageId) {
-      'original' => 'Imagem original',
-      'bilateral' => 'Filtro bilateral (d=9)',
-      'gamma' => 'Correção gamma (0.8)',
-      'grid' => 'Grade de blocos 10×10',
-      'exg' => 'Extração de verde (ExG > 0.15)',
-      'features' => 'Estatísticas rgb28',
-      'predict' => 'Predição MLP',
-      'heatmap' => 'Mapa de clorofila (heatmap)',
-      _ => stageId,
-    };
+    for (final stage in widget.stages) {
+      if (stage.id == stageId) return stage.label;
+    }
+    return stageId;
   }
 
   @override
@@ -174,13 +167,6 @@ class _AnalysisPipelineViewerState extends State<AnalysisPipelineViewer>
             ),
           ),
         ),
-        if (snapshot?.rgb28Features != null) ...[
-          const SizedBox(height: 10),
-          _Rgb28FeaturePanel(
-            features: snapshot!.rgb28Features!,
-            animation: _overlayAnimation,
-          ),
-        ],
         const SizedBox(height: 10),
         AnalysisStagePanel(
           stages: widget.stages,
@@ -271,87 +257,6 @@ class _SpadBadge extends StatelessWidget {
           fontWeight: FontWeight.bold,
           fontSize: 13,
         ),
-      ),
-    );
-  }
-}
-
-class _Rgb28FeaturePanel extends StatelessWidget {
-  final List<double> features;
-  final Animation<double> animation;
-
-  const _Rgb28FeaturePanel({
-    required this.features,
-    required this.animation,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final labels = AnalysisPipelineSnapshot.rgb28Labels;
-    final int count = features.length.clamp(0, labels.length);
-    final double maxVal = features.isEmpty
-        ? 1.0
-        : features.reduce((a, b) => a > b ? a : b).clamp(0.01, 1.0);
-
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.green.withOpacity(0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Features rgb28 → rede neural',
-            style: AppText.small.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppColors.navy,
-            ),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 72,
-            child: AnimatedBuilder(
-              animation: animation,
-              builder: (context, _) {
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: List.generate(count, (i) {
-                    final double target = features[i] / maxVal;
-                    final double heightFactor = (target * animation.value).clamp(0.0, 1.0);
-                    return Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 0.5),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            Container(
-                              height: 52 * heightFactor,
-                              decoration: BoxDecoration(
-                                color: AppColors.green.withOpacity(0.35 + 0.45 * heightFactor),
-                                borderRadius: const BorderRadius.vertical(top: Radius.circular(2)),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }),
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'P50 · média · P75 · P90 para R, G, B, RG, RB, GB, RGB',
-            style: AppText.small.copyWith(
-              color: AppColors.grayMedium,
-              fontSize: 10,
-            ),
-          ),
-        ],
       ),
     );
   }

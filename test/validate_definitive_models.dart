@@ -1,10 +1,22 @@
+import 'dart:convert';
 import 'dart:io';
-import 'package:nutrinitro/src/data/services/analysis/chlorophyll_mlp_predictor.dart';
+import 'package:nutrinitro/src/data/models/recipe/analysis_recipe.dart';
+import 'package:nutrinitro/src/data/services/analysis/recipe/prediction/model_runners.dart';
 
 void main() async {
   print('================================================================');
   print('VALIDATING DART SPAD PREDICTION PARITY AGAINST PYTHON RESEARCH');
   print('================================================================');
+
+  final recipeFile = File('assets/recipes/marandu_nutrients_v1.json');
+  if (!await recipeFile.exists()) {
+    print('Erro: receita marandu_nutrients_v1.json não encontrada.');
+    return;
+  }
+  final recipeJson = json.decode(await recipeFile.readAsString()) as Map<String, dynamic>;
+  final recipe = AnalysisRecipe.fromJson(recipeJson);
+  final chlorophyllModel = recipe.predictions.firstWhere((p) => p.target == 'chlorophyll');
+  const mlpRunner = MlpModelRunner();
 
   // Load extracted_indices_10x10.csv
   final File featuresFile = File('tcc/data/output/images-infos/extracted_indices_10x10.csv');
@@ -119,7 +131,7 @@ void main() async {
     ];
 
     // Compute predictions using Dart implementation
-    final double dartMlp = ChlorophyllMlpPredictor.predict(mlpInputs);
+    final double dartMlp = mlpRunner.predict(mlpInputs, chlorophyllModel.parameters);
 
     final double pyMlp = pyPreds['mlp']!;
 

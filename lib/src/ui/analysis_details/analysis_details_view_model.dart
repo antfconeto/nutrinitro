@@ -3,6 +3,7 @@ import 'package:nutrinitro/src/core/constants/analysis_status.dart';
 import 'package:nutrinitro/src/core/constants/repository_includes.dart';
 import 'package:nutrinitro/src/core/interfaces/api_result_interface.dart';
 import 'package:nutrinitro/src/data/repositories/repositories_provider.dart';
+import 'package:nutrinitro/src/data/services/analysis/core/analysis_progress.dart';
 import 'package:nutrinitro/src/data/services/services_provider.dart';
 import 'package:nutrinitro/src/ui/analysis_details/analysis_details_state.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -81,6 +82,7 @@ class AnalysisDetailsViewModel extends _$AnalysisDetailsViewModel {
     try {
       final analysisRepo = await ref.read(analysisRepositoryProvider.future);
       final imageRepo = await ref.read(imageRepositoryProvider.future);
+      final recipeRepo = await ref.read(analysisRecipeRepositoryProvider.future);
       final analysisService = ref.read(analysisServiceProvider);
 
       // 1. Update status to processing and set the chosen analysis types
@@ -92,6 +94,29 @@ class AnalysisDetailsViewModel extends _$AnalysisDetailsViewModel {
 
       // 2. Process each image
       final cropDataJson = currentAnalysis.crop?.analysisDataJson ?? '{}';
+      final cropId = currentAnalysis.cropId;
+      String? resolvedRecipeJson;
+      String? resolvedRecipeId;
+      String? resolvedRecipeVersion;
+      List<AnalysisStageUpdate> recipeStages = const [];
+
+      if (analysisTypes.contains('nitrogen')) {
+        final recipeResult = await recipeRepo.findDefaultByCropId(cropId);
+        switch (recipeResult) {
+          case Success(value: final recipe):
+            if (recipe == null) {
+              throw Exception('Nenhuma receita de análise encontrada para esta cultura.');
+            }
+            resolvedRecipeJson = recipe.toJsonString();
+            resolvedRecipeId = recipe.id;
+            resolvedRecipeVersion = recipe.version;
+            recipeStages = analysisStagesFromRecipe(recipe);
+          case Failure(:final error):
+            throw Exception('Erro ao carregar receita: $error');
+        }
+      }
+
+      state = state.copyWith(recipeStages: recipeStages);
 
       for (int i = 0; i < total; i++) {
         if (_isCancelled) {
@@ -134,6 +159,9 @@ class AnalysisDetailsViewModel extends _$AnalysisDetailsViewModel {
             analysisDataJson: cropDataJson,
             analysisType: analysisType,
             blockSize: blockSize,
+            recipeJson: analysisType == 'nitrogen' ? resolvedRecipeJson : null,
+            recipeId: analysisType == 'nitrogen' ? resolvedRecipeId : null,
+            recipeVersion: analysisType == 'nitrogen' ? resolvedRecipeVersion : null,
             onStage: (stage) {
               state = state.copyWith(currentAnalysisStage: stage);
             },

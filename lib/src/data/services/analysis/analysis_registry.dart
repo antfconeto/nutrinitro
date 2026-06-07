@@ -1,10 +1,10 @@
-import 'package:nutrinitro/src/data/services/analysis/nitrogen_analysis.dart';
-import 'package:nutrinitro/src/data/services/analysis/registered_analysis.dart';
-import 'package:nutrinitro/src/data/services/analysis/standard_agronomic_analysis.dart';
+import 'package:nutrinitro/src/data/services/analysis/implementations/nitrogen_analysis.dart';
+import 'package:nutrinitro/src/data/services/analysis/core/registered_analysis.dart';
+import 'package:nutrinitro/src/data/services/analysis/implementations/standard_agronomic_analysis.dart';
 
-export 'package:nutrinitro/src/data/services/analysis/nitrogen_analysis.dart';
-export 'package:nutrinitro/src/data/services/analysis/registered_analysis.dart';
-export 'package:nutrinitro/src/data/services/analysis/standard_agronomic_analysis.dart';
+export 'package:nutrinitro/src/data/services/analysis/implementations/nitrogen_analysis.dart';
+export 'package:nutrinitro/src/data/services/analysis/core/registered_analysis.dart';
+export 'package:nutrinitro/src/data/services/analysis/implementations/standard_agronomic_analysis.dart';
 
 /// Registro central de análises disponíveis no app.
 class AnalysisRegistry {

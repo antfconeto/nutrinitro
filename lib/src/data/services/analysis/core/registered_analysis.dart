@@ -20,6 +20,7 @@ class AnalysisMethod {
 abstract class RegisteredAnalysis {
   String get id;
   String get name;
+  String get description;
   List<String> get supportedCropNames;
   List<AnalysisMethod> get methods => const [];
   bool get generatesImage => false;
@@ -29,5 +30,6 @@ abstract class RegisteredAnalysis {
     SendPort? progressPort,
     int blockSize = 10,
     String? analysisType,
+    String? recipeJson,
   });
 }

@@ -1,6 +1,8 @@
 import 'dart:isolate';
 import 'dart:typed_data';
 
+import 'package:nutrinitro/src/data/models/recipe/analysis_recipe.dart';
+
 /// Atualização de progresso enviada do isolate para a UI durante a análise.
 class AnalysisStageUpdate {
   final String id;
@@ -18,30 +20,49 @@ class AnalysisStageUpdate {
   double get progress => totalSteps > 0 ? step / totalSteps : 0.0;
 }
 
-/// Estágios padrão da predição de clorofila por parcela.
-class ChlorophyllAnalysisStages {
-  static const int total = 6;
+/// Converte `recipe.ui.stages` no catálogo usado pela UI e pelo isolate.
+List<AnalysisStageUpdate> analysisStagesFromRecipe(AnalysisRecipe recipe) {
+  final stages = recipe.ui.stages;
+  if (stages.isEmpty) return const [];
 
-  static const List<AnalysisStageUpdate> labels = [
-    AnalysisStageUpdate(id: 'bilateral', label: 'Filtro bilateral', step: 1, totalSteps: total),
-    AnalysisStageUpdate(id: 'gamma', label: 'Correção gamma (0.8)', step: 2, totalSteps: total),
-    AnalysisStageUpdate(id: 'grid', label: 'Grade de blocos 10×10', step: 3, totalSteps: total),
-    AnalysisStageUpdate(id: 'exg', label: 'Máscara ExG > 0.15', step: 4, totalSteps: total),
-    AnalysisStageUpdate(id: 'features', label: 'Estatísticas rgb28', step: 5, totalSteps: total),
-    AnalysisStageUpdate(id: 'predict', label: 'Predição por parcela', step: 6, totalSteps: total),
-  ];
-
-  static AnalysisStageUpdate byId(String id) {
-    return labels.firstWhere(
-      (s) => s.id == id,
-      orElse: () => AnalysisStageUpdate(id: id, label: id, step: 1, totalSteps: total),
+  return List.generate(stages.length, (index) {
+    final stage = stages[index];
+    return AnalysisStageUpdate(
+      id: stage.id,
+      label: stage.label,
+      step: index + 1,
+      totalSteps: stages.length,
     );
-  }
+  });
 }
 
-void reportAnalysisStage(SendPort? port, String id) {
+AnalysisStageUpdate resolveAnalysisStage(
+  String id,
+  List<AnalysisStageUpdate> catalog,
+) {
+  if (catalog.isEmpty) {
+    return AnalysisStageUpdate(id: id, label: id, step: 1, totalSteps: 1);
+  }
+
+  for (final stage in catalog) {
+    if (stage.id == id) return stage;
+  }
+
+  return AnalysisStageUpdate(
+    id: id,
+    label: id,
+    step: 1,
+    totalSteps: catalog.length,
+  );
+}
+
+void reportAnalysisStage(
+  SendPort? port,
+  String id,
+  List<AnalysisStageUpdate> catalog,
+) {
   if (port == null) return;
-  port.send(ChlorophyllAnalysisStages.byId(id));
+  port.send(resolveAnalysisStage(id, catalog));
 }
 
 /// Frame visual do pipeline enviado do isolate para animação na UI.

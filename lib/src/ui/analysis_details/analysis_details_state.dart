@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:nutrinitro/src/data/models/analysis_model.dart';
-import 'package:nutrinitro/src/data/services/analysis/analysis_progress.dart';
+import 'package:nutrinitro/src/data/services/analysis/core/analysis_progress.dart';
 
 class AnalysisDetailsState extends Equatable {
   final bool isLoading;
@@ -15,6 +15,9 @@ class AnalysisDetailsState extends Equatable {
   final AnalysisPipelineSnapshot? currentPipelineSnapshot;
   final String? currentAnalyzingType;
   final Map<String, dynamic>? currentEstimatedResult;
+  final List<AnalysisStageUpdate>? _recipeStages;
+
+  List<AnalysisStageUpdate> get recipeStages => _recipeStages ?? const [];
 
   const AnalysisDetailsState({
     this.isLoading = false,
@@ -29,7 +32,8 @@ class AnalysisDetailsState extends Equatable {
     this.currentPipelineSnapshot,
     this.currentAnalyzingType,
     this.currentEstimatedResult,
-  });
+    List<AnalysisStageUpdate>? recipeStages,
+  }) : _recipeStages = recipeStages;
 
   AnalysisDetailsState copyWith({
     bool? isLoading,
@@ -44,6 +48,7 @@ class AnalysisDetailsState extends Equatable {
     AnalysisPipelineSnapshot? currentPipelineSnapshot,
     String? currentAnalyzingType,
     Map<String, dynamic>? currentEstimatedResult,
+    List<AnalysisStageUpdate>? recipeStages,
     bool clearError = false,
     bool clearSuccess = false,
     bool clearAnalysisStage = false,
@@ -67,6 +72,7 @@ class AnalysisDetailsState extends Equatable {
           : (currentPipelineSnapshot ?? this.currentPipelineSnapshot),
       currentAnalyzingType: currentAnalyzingType ?? this.currentAnalyzingType,
       currentEstimatedResult: clearEstimatedResult ? null : (currentEstimatedResult ?? this.currentEstimatedResult),
+      recipeStages: recipeStages ?? _recipeStages,
     );
   }
 
@@ -84,5 +90,6 @@ class AnalysisDetailsState extends Equatable {
         currentPipelineSnapshot,
         currentAnalyzingType,
         currentEstimatedResult,
+        _recipeStages,
       ];
 }

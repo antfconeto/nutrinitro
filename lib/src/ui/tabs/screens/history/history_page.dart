@@ -288,12 +288,14 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
                             color: AppColors.grayMedium,
                           ),
                           const SizedBox(width: 4),
-                          Text(
-                            DateFormat(
-                              'dd/MM/yyyy  HH:mm',
-                            ).format(analysis.datetime),
-                            style: AppText.small.copyWith(
-                              color: AppColors.grayMedium,
+                          Expanded(
+                            child: Text(
+                              DateFormat('dd/MM/yyyy  HH:mm').format(analysis.datetime),
+                              style: AppText.small.copyWith(
+                                color: AppColors.grayMedium,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -314,10 +316,14 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
                               ),
                             ),
                             const SizedBox(width: 4),
-                            Text(
-                              analysis.crop!.name,
-                              style: AppText.small.copyWith(
-                                color: AppColors.grayMedium,
+                            Expanded(
+                              child: Text(
+                                analysis.crop!.name,
+                                style: AppText.small.copyWith(
+                                  color: AppColors.grayMedium,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],

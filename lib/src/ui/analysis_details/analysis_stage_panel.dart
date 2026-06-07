@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:nutrinitro/src/data/services/analysis/analysis_progress.dart';
+import 'package:nutrinitro/src/data/services/analysis/core/analysis_progress.dart';
 import 'package:nutrinitro/src/core/themes/app_colors.dart';
 import 'package:nutrinitro/src/core/themes/app_text.dart';
 
@@ -85,8 +85,4 @@ class AnalysisStagePanel extends StatelessWidget {
       ),
     );
   }
-}
-
-List<AnalysisStageUpdate> stagesForAnalysisType(String? analysisType) {
-  return ChlorophyllAnalysisStages.labels;
 }

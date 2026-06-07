@@ -128,3 +128,45 @@ final class ImageRepositoryProvider
 }
 
 String _$imageRepositoryHash() => r'e434baab9551fd6f5340cf7a2f22255815e182ef';
+
+@ProviderFor(analysisRecipeRepository)
+const analysisRecipeRepositoryProvider = AnalysisRecipeRepositoryProvider._();
+
+final class AnalysisRecipeRepositoryProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<AnalysisRecipeRepository>,
+          AnalysisRecipeRepository,
+          FutureOr<AnalysisRecipeRepository>
+        >
+    with
+        $FutureModifier<AnalysisRecipeRepository>,
+        $FutureProvider<AnalysisRecipeRepository> {
+  const AnalysisRecipeRepositoryProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'analysisRecipeRepositoryProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$analysisRecipeRepositoryHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<AnalysisRecipeRepository> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<AnalysisRecipeRepository> create(Ref ref) {
+    return analysisRecipeRepository(ref);
+  }
+}
+
+String _$analysisRecipeRepositoryHash() =>
+    r'01ca066bc2d2f46b169fbd18eb318ce1b65c0516';

@@ -2,6 +2,7 @@ import 'package:nutrinitro/src/core/database/database_client.dart';
 import 'package:nutrinitro/src/data/repositories/analysis/analysis_repository.dart';
 import 'package:nutrinitro/src/data/repositories/crop/crop_repository.dart';
 import 'package:nutrinitro/src/data/repositories/image/image_repository.dart';
+import 'package:nutrinitro/src/data/repositories/recipe/analysis_recipe_repository.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'repositories_provider.g.dart';
@@ -24,4 +25,10 @@ Future<CropRepository> cropRepository(Ref ref) async {
 Future<ImageRepository> imageRepository(Ref ref) async {
   final db = await ref.watch(databaseClientProvider.future);
   return ImageRepository(db);
+}
+
+@riverpod
+Future<AnalysisRecipeRepository> analysisRecipeRepository(Ref ref) async {
+  final db = await ref.watch(databaseClientProvider.future);
+  return AnalysisRecipeRepository(db);
 }

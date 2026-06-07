@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:image/image.dart' as img;
-import 'package:nutrinitro/src/data/services/analysis/analysis_progress.dart';
+import 'package:nutrinitro/src/data/services/analysis/core/analysis_progress.dart';
 import 'package:opencv_dart/opencv.dart' as cv;
 
 class ImageBlockGrid {
@@ -36,17 +36,18 @@ class ImageAnalysisHelper {
   static const double kBilateralSigmaSpace = 75.0;
   static const double kGamma = 0.8;
 
-  static List<int> _gammaLookupTable() {
+  static List<int> _gammaLookupTable([double gamma = kGamma]) {
     return List.generate(256, (i) {
-      return (255.0 * math.pow(i / 255.0, 1.0 / kGamma)).round().clamp(0, 255);
+      return (255.0 * math.pow(i / 255.0, 1.0 / gamma)).round().clamp(0, 255);
     });
   }
 
   static void _emitStage(
     void Function(AnalysisStageUpdate stage)? onStage,
     String stageId,
+    List<AnalysisStageUpdate> stageCatalog,
   ) {
-    onStage?.call(ChlorophyllAnalysisStages.byId(stageId));
+    onStage?.call(resolveAnalysisStage(stageId, stageCatalog));
   }
 
   static const int kPreviewMaxDim = 480;
@@ -96,8 +97,13 @@ class ImageAnalysisHelper {
     File imageFile, {
     required int blockWidth,
     required int blockHeight,
+    int bilateralDiameter = kBilateralDiameter,
+    double bilateralSigmaColor = kBilateralSigmaColor,
+    double bilateralSigmaSpace = kBilateralSigmaSpace,
+    double gamma = kGamma,
     void Function(AnalysisStageUpdate stage)? onStage,
     PipelineSnapshotCallback? onSnapshot,
+    List<AnalysisStageUpdate> stageCatalog = const [],
   }) async {
     final Uint8List bytes = await imageFile.readAsBytes();
     final cv.Mat decoded = cv.imdecode(bytes, cv.IMREAD_COLOR);
@@ -120,7 +126,7 @@ class ImageAnalysisHelper {
         stageProgress: 0.0,
       ));
 
-      _emitStage(onStage, 'bilateral');
+      _emitStage(onStage, 'bilateral', stageCatalog);
       _emitSnapshot(onSnapshot, AnalysisPipelineSnapshot(
         stageId: 'bilateral',
         imageJpeg: originalJpeg,
@@ -131,9 +137,9 @@ class ImageAnalysisHelper {
 
       final cv.Mat filtered = cv.bilateralFilter(
         decoded,
-        kBilateralDiameter,
-        kBilateralSigmaColor,
-        kBilateralSigmaSpace,
+        bilateralDiameter,
+        bilateralSigmaColor,
+        bilateralSigmaSpace,
       );
 
       final Uint8List bilateralJpeg = _matToPreviewJpeg(filtered);
@@ -145,7 +151,7 @@ class ImageAnalysisHelper {
         stageProgress: 1.0,
       ));
 
-      _emitStage(onStage, 'gamma');
+      _emitStage(onStage, 'gamma', stageCatalog);
       _emitSnapshot(onSnapshot, AnalysisPipelineSnapshot(
         stageId: 'gamma',
         imageJpeg: bilateralJpeg,
@@ -158,7 +164,7 @@ class ImageAnalysisHelper {
         1,
         256,
         cv.MatType.CV_8UC1,
-        _gammaLookupTable(),
+        _gammaLookupTable(gamma),
       );
       processedMat = cv.LUT(filtered, lut);
       lut.dispose();
@@ -179,7 +185,7 @@ class ImageAnalysisHelper {
       final int imgH = processedMat.rows;
       final Uint8List bgrData = processedMat.data;
 
-      _emitStage(onStage, 'grid');
+      _emitStage(onStage, 'grid', stageCatalog);
 
       final int cols = (imgW / blockWidth).floor();
       final int rows = (imgH / blockHeight).floor();
