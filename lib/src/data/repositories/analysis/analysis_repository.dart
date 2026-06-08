@@ -77,6 +77,7 @@ class AnalysisRepository {
     required String title,
     required DateTime datetime,
     required int cropId,
+    required String analysisType,
     required List<ImageModel> images,
     String? notes,
   }) async {
@@ -86,6 +87,7 @@ class AnalysisRepository {
         'datetime': datetime.toIso8601String(),
         'notes': notes,
         'crop_id': cropId,
+        'analysis_type': analysisType,
         'status': AnalysisStatus.pending.name,
       });
 
