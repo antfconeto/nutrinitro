@@ -1,10 +1,10 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:nutrinitro/src/core/themes/app_colors.dart';
 import 'package:nutrinitro/src/core/themes/app_text.dart';
 import 'package:nutrinitro/src/data/models/crop_model.dart';
+import 'dart:io';
 import 'package:nutrinitro/src/ui/tabs/screens/home/home_state.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/home/home_view_model.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
@@ -115,7 +115,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                 description: 'Abre a câmera com opção de recorte',
                 onTap: () {
                   Navigator.pop(context);
-                  ref.read(homeViewModelProvider.notifier).pickFromCamera();
+                  Future.microtask(() {
+                    ref.read(homeViewModelProvider.notifier).pickFromCamera();
+                  });
                 },
               ),
               const SizedBox(height: 12),
@@ -125,7 +127,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                 description: 'Selecione uma ou mais imagens',
                 onTap: () {
                   Navigator.pop(context);
-                  ref.read(homeViewModelProvider.notifier).pickFromGallery();
+                  Future.microtask(() {
+                    ref.read(homeViewModelProvider.notifier).pickFromGallery();
+                  });
                 },
               ),
               const SizedBox(height: 8),
@@ -385,9 +389,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       _sectionLabel('Imagens', required: true),
-                      if (state.images.isNotEmpty)
+                      if (state.resolvedImages.isNotEmpty)
                         Text(
-                          '${state.images.length} selecionada${state.images.length > 1 ? 's' : ''}',
+                          '${state.resolvedImages.length} selecionada${state.resolvedImages.length > 1 ? 's' : ''}',
                           style: AppText.small.copyWith(color: AppColors.green),
                         ),
                     ],
@@ -422,8 +426,13 @@ class _HomePageState extends ConsumerState<HomePage> {
                               spacing: spacing,
                               runSpacing: spacing,
                               children: [
-                                ...state.images.asMap().entries.map(
-                                  (e) => _imageThumb(e.value, e.key, itemSize),
+                                ...state.resolvedImages.asMap().entries.map(
+                                  (e) => _imageThumb(
+                                    e.value,
+                                    e.key,
+                                    itemSize,
+                                    state.sourceNameAt(e.key),
+                                  ),
                                 ),
                                 _addImageButton(context, itemSize),
                               ],
@@ -552,7 +561,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-  Widget _imageThumb(File file, int index, double size) {
+  Widget _imageThumb(File file, int index, double size, String? sourceName) {
     return SizedBox(
       width: size,
       height: size,
@@ -565,6 +574,12 @@ class _HomePageState extends ConsumerState<HomePage> {
               width: size,
               height: size,
               fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                width: size,
+                height: size,
+                color: AppColors.grayLight,
+                child: const Icon(Icons.broken_image_outlined, color: AppColors.grayMedium),
+              ),
             ),
           ),
           Positioned(
@@ -605,6 +620,25 @@ class _HomePageState extends ConsumerState<HomePage> {
               ),
             ),
           ),
+          if (sourceName != null && sourceName.isNotEmpty)
+            Positioned(
+              bottom: 4,
+              left: 4,
+              right: 4,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.65),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  sourceName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white, fontSize: 8),
+                ),
+              ),
+            ),
         ],
       ),
     );

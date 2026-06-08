@@ -74,7 +74,12 @@ class PdfExporter {
         if (img.result != null) {
           try {
             final data = json.decode(img.result!);
-            if (data is Map && data.containsKey('notes')) {
+            if (data is Map) {
+              final String predictionMethod = data['prediction_method'] ?? '';
+              if (predictionMethod.isNotEmpty) {
+                modelName = predictionMethod;
+                break;
+              }
               final String notesStr = data['notes'] ?? '';
               if (notesStr.contains('SI')) {
                 modelName = 'SI (Inclinação Espectral)';
@@ -138,6 +143,30 @@ class PdfExporter {
     }
     if (nitrogenCount > 0) {
       averageNitrogen = '${(sumNitrogen / nitrogenCount).toStringAsFixed(2)} g/kg';
+    }
+
+    // Try finding an overall average biomass reading
+    String averageBiomass = 'N/A';
+    double sumBiomass = 0.0;
+    int biomassCount = 0;
+    for (final img in analysis.images) {
+      if (img.result != null) {
+        try {
+          final data = json.decode(img.result!);
+          if (data is Map && data.containsKey('estimated_biomass')) {
+            final String bioStr = data['estimated_biomass'];
+            final numericStr = bioStr.replaceAll(' t/ha', '').trim();
+            final val = double.tryParse(numericStr);
+            if (val != null) {
+              sumBiomass += val;
+              biomassCount++;
+            }
+          }
+        } catch (_) {}
+      }
+    }
+    if (biomassCount > 0) {
+      averageBiomass = '${(sumBiomass / biomassCount).toStringAsFixed(2)} t/ha';
     }
 
     // Gather all paths to process in Isolate
@@ -279,15 +308,26 @@ class PdfExporter {
                           ],
                         ),
                       ),
-                      pw.Expanded(
-                        child: pw.Column(
-                          crossAxisAlignment: pw.CrossAxisAlignment.start,
-                          children: [
-                            pw.Text('Nitrogênio Estimado Médio:', style: pw.TextStyle(fontSize: 10, color: greyColor)),
-                            pw.Text(averageNitrogen, style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: primaryColor)),
-                          ],
+                      if (averageBiomass != 'N/A')
+                        pw.Expanded(
+                          child: pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              pw.Text('Biomassa Média Geral:', style: pw.TextStyle(fontSize: 10, color: greyColor)),
+                              pw.Text(averageBiomass, style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: primaryColor)),
+                            ],
+                          ),
                         ),
-                      ),
+                      if (averageNitrogen != 'N/A')
+                        pw.Expanded(
+                          child: pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              pw.Text('Nitrogênio Médio:', style: pw.TextStyle(fontSize: 10, color: greyColor)),
+                              pw.Text(averageNitrogen, style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: primaryColor)),
+                            ],
+                          ),
+                        ),
                     ],
                   ),
                   if (analysis.notes != null && analysis.notes!.trim().isNotEmpty) ...[
@@ -319,7 +359,7 @@ class PdfExporter {
                 2: const pw.FlexColumnWidth(1.0), // DBC Bloco
                 3: const pw.FlexColumnWidth(1.0), // DBC Parcela
                 4: const pw.FlexColumnWidth(1.0), // Clorofila
-                5: const pw.FlexColumnWidth(1.0), // Nitrogênio
+                5: const pw.FlexColumnWidth(1.2), // Nitrogênio / Biomassa
               },
               children: [
                 pw.TableRow(
@@ -347,7 +387,12 @@ class PdfExporter {
                     ),
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(6),
-                      child: pw.Text('Nitrogênio', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10, color: primaryColor)),
+                      child: pw.Text(
+                        averageBiomass != 'N/A' && averageNitrogen != 'N/A'
+                            ? 'N / Biomassa'
+                            : (averageBiomass != 'N/A' ? 'Biomassa' : 'Nitrogênio'),
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10, color: primaryColor),
+                      ),
                     ),
                   ],
                 ),
@@ -369,7 +414,15 @@ class PdfExporter {
                     try {
                       final data = json.decode(img.result!);
                       spadVal = data['chlorophyll_spad'] ?? 'N/A';
-                      nitrogenVal = data['nitrogen_content'] ?? 'N/A';
+                      final hasBio = data.containsKey('estimated_biomass');
+                      final hasN = data.containsKey('nitrogen_content');
+                      if (hasBio && hasN) {
+                        nitrogenVal = '${data['nitrogen_content']} | ${data['estimated_biomass']}';
+                      } else if (hasBio) {
+                        nitrogenVal = data['estimated_biomass'] ?? 'N/A';
+                      } else {
+                        nitrogenVal = data['nitrogen_content'] ?? 'N/A';
+                      }
                     } catch (_) {}
                   }
 
@@ -443,15 +496,24 @@ class PdfExporter {
               final img = entry.value;
 
               final originalImg = tryLoadImage(img.originalPath);
-              final analyzedImg = tryLoadImage(img.analyzedPath);
+              final analyzedImg = img.analyzedPath == img.originalPath
+                  ? null
+                  : tryLoadImage(img.analyzedPath);
 
               String resultText = 'Não analisada';
               if (img.result != null) {
                 try {
                   final data = json.decode(img.result!);
                   final String spad = data['chlorophyll_spad'] ?? 'N/A';
-                  final String nVal = data['nitrogen_content'] ?? 'N/A';
-                  resultText = 'Clorofila: $spad | Nitrogênio: $nVal';
+                  final hasBio = data.containsKey('estimated_biomass');
+                  final hasN = data.containsKey('nitrogen_content');
+                  if (hasBio && hasN) {
+                    resultText = 'Clorofila: $spad | N: ${data['nitrogen_content']} | Biomassa: ${data['estimated_biomass']}';
+                  } else if (hasBio) {
+                    resultText = 'Clorofila: $spad | Biomassa: ${data['estimated_biomass']}';
+                  } else {
+                    resultText = 'Clorofila: $spad | Nitrogênio: ${data['nitrogen_content']}';
+                  }
                 } catch (_) {}
               }
 

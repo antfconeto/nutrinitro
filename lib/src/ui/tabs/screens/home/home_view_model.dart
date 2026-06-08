@@ -1,8 +1,11 @@
 import 'dart:io';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:nutrinitro/src/core/interfaces/api_result_interface.dart';
 import 'package:nutrinitro/src/data/models/crop_model.dart';
 import 'package:nutrinitro/src/data/models/image_model.dart';
+import 'package:nutrinitro/src/data/models/local_image_pick.dart';
 import 'package:nutrinitro/src/data/repositories/repositories_provider.dart';
 import 'package:nutrinitro/src/data/services/services_provider.dart';
 import 'package:nutrinitro/src/data/services/analysis/analysis_registry.dart';
@@ -11,7 +14,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'home_view_model.g.dart';
 
-@riverpod
+@Riverpod(keepAlive: true)
 class HomeViewModel extends _$HomeViewModel {
   @override
   HomeState build() {
@@ -56,7 +59,6 @@ class HomeViewModel extends _$HomeViewModel {
   }
 
   void selectAnalysis(RegisteredAnalysis analysis) {
-    // Clear crop selection if it is not supported by the newly selected analysis
     final CropModel? newSelectedCrop = (state.selectedCrop != null &&
             analysis.supportedCropNames.contains(state.selectedCrop!.name))
         ? state.selectedCrop
@@ -74,6 +76,63 @@ class HomeViewModel extends _$HomeViewModel {
     state = state.copyWith(selectedCrop: crop, clearError: true);
   }
 
+  Future<void> _appendImages(List<LocalImagePick> picks) async {
+    if (picks.isEmpty) return;
+
+    final Directory stagingDir = Directory(
+      p.join((await getTemporaryDirectory()).path, 'home_picks'),
+    );
+    if (!await stagingDir.exists()) {
+      await stagingDir.create(recursive: true);
+    }
+
+    final List<File> stagedFiles = [];
+    final List<String?> stagedNames = [];
+    final int baseIndex = state.resolvedImages.length;
+
+    for (int i = 0; i < picks.length; i++) {
+      final LocalImagePick pick = picks[i];
+
+      final String ext = p.extension(pick.file.path).isNotEmpty
+          ? p.extension(pick.file.path)
+          : '.jpg';
+      final String safeName = _safePickName(pick.sourceName, baseIndex + i, ext);
+      final File dest = File(p.join(stagingDir.path, safeName));
+
+      try {
+        if (await pick.file.exists()) {
+          await pick.file.copy(dest.path);
+        } else if (pick.xFile != null) {
+          await dest.writeAsBytes(await pick.xFile!.readAsBytes());
+        } else {
+          continue;
+        }
+      } catch (e) {
+        print('Error staging image ${pick.sourceName ?? i}: $e');
+        continue;
+      }
+
+      stagedFiles.add(dest);
+      stagedNames.add(pick.sourceName);
+    }
+
+    if (!ref.mounted || stagedFiles.isEmpty) return;
+
+    state = state.copyWith(
+      images: [...state.resolvedImages, ...stagedFiles],
+      imageSourceNames: [...state.resolvedImageSourceNames, ...stagedNames],
+      clearError: true,
+    );
+  }
+
+  String _safePickName(String? sourceName, int index, String ext) {
+    if (sourceName != null && sourceName.isNotEmpty) {
+      final base = p.basename(sourceName).replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
+      if (base.isNotEmpty) return '${DateTime.now().millisecondsSinceEpoch}_$base';
+    }
+    return '${DateTime.now().millisecondsSinceEpoch}_pick_$index$ext';
+  }
+
   Future<void> pickFromCamera() async {
     try {
       if (Platform.isAndroid) {
@@ -87,10 +146,7 @@ class HomeViewModel extends _$HomeViewModel {
       final cropped = await ref
           .read(imageCropperServiceProvider)
           .crop(file.path);
-      state = state.copyWith(
-        images: [...state.images, cropped ?? file],
-        clearError: true,
-      );
+      await _appendImages([LocalImagePick(cropped ?? file)]);
     } catch (e) {
       print('Error picking image from camera: $e');
       state = state.copyWith(errorMessage: 'Erro ao capturar imagem: $e');
@@ -104,13 +160,10 @@ class HomeViewModel extends _$HomeViewModel {
       }
 
       final cameraService = ref.read(cameraServiceProvider);
-      final files = await cameraService.pickMultipleFromGallery();
-      if (files.isEmpty) return;
+      final picks = await cameraService.pickMultipleFromGallery();
+      if (picks.isEmpty) return;
 
-      state = state.copyWith(
-        images: [...state.images, ...files],
-        clearError: true,
-      );
+      await _appendImages(picks);
     } catch (e) {
       print('Error picking images from gallery: $e');
       state = state.copyWith(errorMessage: 'Erro ao selecionar imagens: $e');
@@ -119,14 +172,21 @@ class HomeViewModel extends _$HomeViewModel {
 
   Future<void> cropImage(int index) async {
     try {
-      final file = state.images[index];
+      final file = state.resolvedImages[index];
+      final sourceName = state.sourceNameAt(index);
       final cropped = await ref
           .read(imageCropperServiceProvider)
           .crop(file.path);
       if (cropped == null) return;
 
-      final updated = List<File>.from(state.images)..[index] = cropped;
-      state = state.copyWith(images: updated);
+      final updatedImages = List<File>.from(state.resolvedImages)..[index] = cropped;
+      state = state.copyWith(images: updatedImages);
+      // sourceName permanece o mesmo após recorte
+      if (sourceName != null && index < state.resolvedImageSourceNames.length) {
+        final names = List<String?>.from(state.resolvedImageSourceNames);
+        names[index] = sourceName;
+        state = state.copyWith(imageSourceNames: names);
+      }
     } catch (e) {
       print('Error cropping image: $e');
       state = state.copyWith(errorMessage: 'Erro ao recortar imagem: $e');
@@ -134,8 +194,15 @@ class HomeViewModel extends _$HomeViewModel {
   }
 
   void removeImage(int index) {
-    final updated = List<File>.from(state.images)..removeAt(index);
-    state = state.copyWith(images: updated);
+    final updatedImages = List<File>.from(state.resolvedImages)..removeAt(index);
+    final updatedNames = List<String?>.from(state.resolvedImageSourceNames);
+    if (index < updatedNames.length) {
+      updatedNames.removeAt(index);
+    }
+    state = state.copyWith(
+      images: updatedImages,
+      imageSourceNames: updatedNames,
+    );
   }
 
   Future<void> submit() async {
@@ -172,12 +239,14 @@ class HomeViewModel extends _$HomeViewModel {
         case Success(value: final analysis):
           final analysisId = analysis.id!;
 
-          for (int i = 0; i < state.images.length; i++) {
-            final file = state.images[i];
+          for (int i = 0; i < state.resolvedImages.length; i++) {
+            final file = state.resolvedImages[i];
             final metadata = await exifService.readMetadata(file.path);
             final permanentPath = await storageService.saveImage(
               analysisId: analysisId,
               sourcePath: file.path,
+              preferredFileName: state.sourceNameAt(i),
+              displayOrder: i,
             );
 
             await imageRepo.create(
@@ -197,7 +266,8 @@ class HomeViewModel extends _$HomeViewModel {
             successMessage: 'Análise criada com sucesso!',
             submitted: false,
             title: '',
-            images: const [],
+            images: const <File>[],
+            imageSourceNames: const <String?>[],
             clearDatetime: true,
             clearNotes: true,
             clearSelectedCrop: true,

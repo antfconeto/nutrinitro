@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:nutrinitro/src/data/models/analysis_model.dart';
+import 'package:nutrinitro/src/data/services/analysis/core/analysis_progress.dart';
 
 class AnalysisDetailsState extends Equatable {
   final bool isLoading;
@@ -10,7 +11,13 @@ class AnalysisDetailsState extends Equatable {
   final int activeImageIndex;
   final int currentAnalyzingImageIndex;
   final int totalImagesToAnalyze;
-  final List<List<double>>? liveScanningMatrix;
+  final AnalysisStageUpdate? currentAnalysisStage;
+  final AnalysisPipelineSnapshot? currentPipelineSnapshot;
+  final String? currentAnalyzingType;
+  final Map<String, dynamic>? currentEstimatedResult;
+  final List<AnalysisStageUpdate>? _recipeStages;
+
+  List<AnalysisStageUpdate> get recipeStages => _recipeStages ?? const [];
 
   const AnalysisDetailsState({
     this.isLoading = false,
@@ -21,8 +28,12 @@ class AnalysisDetailsState extends Equatable {
     this.activeImageIndex = 0,
     this.currentAnalyzingImageIndex = 0,
     this.totalImagesToAnalyze = 0,
-    this.liveScanningMatrix,
-  });
+    this.currentAnalysisStage,
+    this.currentPipelineSnapshot,
+    this.currentAnalyzingType,
+    this.currentEstimatedResult,
+    List<AnalysisStageUpdate>? recipeStages,
+  }) : _recipeStages = recipeStages;
 
   AnalysisDetailsState copyWith({
     bool? isLoading,
@@ -33,10 +44,16 @@ class AnalysisDetailsState extends Equatable {
     int? activeImageIndex,
     int? currentAnalyzingImageIndex,
     int? totalImagesToAnalyze,
-    List<List<double>>? liveScanningMatrix,
+    AnalysisStageUpdate? currentAnalysisStage,
+    AnalysisPipelineSnapshot? currentPipelineSnapshot,
+    String? currentAnalyzingType,
+    Map<String, dynamic>? currentEstimatedResult,
+    List<AnalysisStageUpdate>? recipeStages,
     bool clearError = false,
     bool clearSuccess = false,
-    bool clearLiveMatrix = false,
+    bool clearAnalysisStage = false,
+    bool clearPipelineSnapshot = false,
+    bool clearEstimatedResult = false,
   }) {
     return AnalysisDetailsState(
       isLoading: isLoading ?? this.isLoading,
@@ -47,7 +64,15 @@ class AnalysisDetailsState extends Equatable {
       activeImageIndex: activeImageIndex ?? this.activeImageIndex,
       currentAnalyzingImageIndex: currentAnalyzingImageIndex ?? this.currentAnalyzingImageIndex,
       totalImagesToAnalyze: totalImagesToAnalyze ?? this.totalImagesToAnalyze,
-      liveScanningMatrix: clearLiveMatrix ? null : (liveScanningMatrix ?? this.liveScanningMatrix),
+      currentAnalysisStage: clearAnalysisStage
+          ? null
+          : (currentAnalysisStage ?? this.currentAnalysisStage),
+      currentPipelineSnapshot: clearPipelineSnapshot
+          ? null
+          : (currentPipelineSnapshot ?? this.currentPipelineSnapshot),
+      currentAnalyzingType: currentAnalyzingType ?? this.currentAnalyzingType,
+      currentEstimatedResult: clearEstimatedResult ? null : (currentEstimatedResult ?? this.currentEstimatedResult),
+      recipeStages: recipeStages ?? _recipeStages,
     );
   }
 
@@ -61,6 +86,10 @@ class AnalysisDetailsState extends Equatable {
         activeImageIndex,
         currentAnalyzingImageIndex,
         totalImagesToAnalyze,
-        liveScanningMatrix,
+        currentAnalysisStage,
+        currentPipelineSnapshot,
+        currentAnalyzingType,
+        currentEstimatedResult,
+        _recipeStages,
       ];
 }
