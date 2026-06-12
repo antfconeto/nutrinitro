@@ -26,7 +26,7 @@ class _TabsPageState extends ConsumerState<TabsPage> {
 
   final List<Widget> _pages = <Widget>[
     const DashboardPage(),
-    const AnalysesListPage(),
+    const AnalysisListPage(),
     const DronePage(),
   ];
 

@@ -1,3 +1,4 @@
+import 'package:nutrinitro/src/core/constants/analysis_status.dart';
 import 'package:nutrinitro/src/core/constants/repository_includes.dart';
 import 'package:nutrinitro/src/core/interfaces/api_result_interface.dart';
 import 'package:nutrinitro/src/data/repositories/repositories_provider.dart';
@@ -17,6 +18,8 @@ class AnalysesListViewModel extends _$AnalysesListViewModel {
     Future.microtask(() => fetchAnalyses(refresh: true));
     return const AnalysesListState();
   }
+
+  // ─── Fetch ─────────────────────────────────────────────────────────────────
 
   Future<void> fetchAnalyses({bool refresh = false}) async {
     if (refresh) {
@@ -41,7 +44,6 @@ class AnalysesListViewModel extends _$AnalysesListViewModel {
           hasMore: list.length == _perPage,
         );
       case Failure(:final error):
-        print('Error fetching analyses: $error');
         state = state.copyWith(
           isLoading: false,
           errorMessage: error.toString(),
@@ -70,13 +72,39 @@ class AnalysesListViewModel extends _$AnalysesListViewModel {
           hasMore: list.length == _perPage,
         );
       case Failure(:final error):
-        print('Error loading more analyses: $error');
         state = state.copyWith(
           isLoadingMore: false,
           errorMessage: error.toString(),
         );
     }
   }
+
+  // ─── Search / Filter / Sort ────────────────────────────────────────────────
+
+  void updateSearch(String query) {
+    state = state.copyWith(searchQuery: query);
+  }
+
+  void updateStatusFilter(AnalysisStatus? status) {
+    state = state.copyWith(
+      statusFilter: status,
+      clearStatusFilter: status == null,
+    );
+  }
+
+  void updateSortOrder(AnalysisSortOrder order) {
+    state = state.copyWith(sortOrder: order);
+  }
+
+  void clearFilters() {
+    state = state.copyWith(
+      searchQuery: '',
+      sortOrder: AnalysisSortOrder.newestFirst,
+      clearStatusFilter: true,
+    );
+  }
+
+  // ─── Delete ────────────────────────────────────────────────────────────────
 
   Future<bool> delete(int analysisId) async {
     final analysisRepo = await ref.read(analysisRepositoryProvider.future);
@@ -87,14 +115,12 @@ class AnalysesListViewModel extends _$AnalysesListViewModel {
     switch (result) {
       case Success():
         await storageService.deleteAnalysisFiles(analysisId);
-
         state = state.copyWith(
           analyses: state.analyses.where((a) => a.id != analysisId).toList(),
         );
         return true;
 
       case Failure(:final error):
-        print('Error deleting analysis: $error');
         state = state.copyWith(errorMessage: error.toString());
         return false;
     }
