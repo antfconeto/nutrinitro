@@ -15,11 +15,13 @@ class AnalysisRepository {
 
   AnalysisRepository(this._db, this._imageRepository, this._cropRepository);
 
+  // ─── Fetch ─────────────────────────────────────────────────────────────────
+
   Future<Result<List<AnalysisModel>>> all({
     Set<AnalysisInclude> include = const {},
   }) async {
     try {
-      final rows = await _db.query('analyses', orderBy: 'datetime DESC');
+      final rows = await _db.query('analyses', orderBy: 'id DESC');
       final analyses = <AnalysisModel>[];
       for (final row in rows) {
         analyses.add(await _buildAnalysis(row, include: include));
@@ -30,18 +32,62 @@ class AnalysisRepository {
     }
   }
 
+  /// Paginated fetch with optional filters applied at the database level.
+  ///
+  /// [statusFilter] — filters by one or more statuses (OR logic)
+  /// [cropFilter]   — filters by one or more crop ids (OR logic)
+  /// [searchQuery]  — searches title and crop name (LIKE, case-insensitive)
+  /// [sortOrder]    — 'datetime DESC' | 'datetime ASC' | 'title ASC' | 'title DESC'
   Future<Result<List<AnalysisModel>>> allPaginated({
     required int offset,
     required int limit,
     Set<AnalysisInclude> include = const {},
+    Set<AnalysisStatus> statusFilter = const {},
+    Set<int> cropFilter = const {},
+    String searchQuery = '',
+    String sortOrder = 'datetime DESC',
   }) async {
     try {
-      final rows = await _db.query(
-        'analyses',
-        orderBy: 'id DESC',
-        limit: limit,
-        offset: offset,
-      );
+      final whereClauses = <String>[];
+      final whereArgs = <dynamic>[];
+
+      // Status filter
+      if (statusFilter.isNotEmpty) {
+        final placeholders = statusFilter.map((_) => '?').join(', ');
+        whereClauses.add('a.status IN ($placeholders)');
+        whereArgs.addAll(statusFilter.map((s) => s.name));
+      }
+
+      // Crop filter
+      if (cropFilter.isNotEmpty) {
+        final placeholders = cropFilter.map((_) => '?').join(', ');
+        whereClauses.add('a.crop_id IN ($placeholders)');
+        whereArgs.addAll(cropFilter);
+      }
+
+      // Search — title OR crop name
+      if (searchQuery.isNotEmpty) {
+        whereClauses.add('(a.title LIKE ? OR c.name LIKE ?)');
+        whereArgs.addAll(['%$searchQuery%', '%$searchQuery%']);
+      }
+
+      final whereString = whereClauses.isNotEmpty
+          ? 'WHERE ${whereClauses.join(' AND ')}'
+          : '';
+
+      final sql =
+          '''
+        SELECT a.*
+        FROM analyses a
+        LEFT JOIN crops c ON a.crop_id = c.id
+        $whereString
+        ORDER BY a.$sortOrder
+        LIMIT ? OFFSET ?
+      ''';
+
+      whereArgs.addAll([limit, offset]);
+
+      final rows = await _db.rawQuery(sql, whereArgs);
 
       final analyses = <AnalysisModel>[];
       for (final row in rows) {
@@ -66,12 +112,13 @@ class AnalysisRepository {
       );
 
       if (rows.isEmpty) return Failure(Exception('Analysis not found'));
-      
       return Success(await _buildAnalysis(rows.first, include: include));
     } catch (e) {
       return Failure(Exception('Error fetching analysis: $e'));
     }
   }
+
+  // ─── Create ────────────────────────────────────────────────────────────────
 
   Future<Result<AnalysisModel>> create({
     required String title,
@@ -107,6 +154,8 @@ class AnalysisRepository {
     }
   }
 
+  // ─── Update ────────────────────────────────────────────────────────────────
+
   Future<Result<Nil>> update(
     int analysisId,
     Map<String, dynamic> fields,
@@ -118,23 +167,25 @@ class AnalysisRepository {
         where: 'id = ?',
         whereArgs: [analysisId],
       );
-
       return successOfNil();
     } catch (e) {
       return Failure(Exception('Error updating analysis: $e'));
     }
   }
 
+  // ─── Delete ────────────────────────────────────────────────────────────────
+
   Future<Result<Nil>> delete(int analysisId) async {
     try {
       await _imageRepository.deleteBy('analysis_id', analysisId);
       await _db.delete('analyses', where: 'id = ?', whereArgs: [analysisId]);
-
       return successOfNil();
     } catch (e) {
       return Failure(Exception('Error deleting analysis: $e'));
     }
   }
+
+  // ─── Helpers ───────────────────────────────────────────────────────────────
 
   Future<AnalysisModel> _buildAnalysis(
     Map<String, dynamic> row, {

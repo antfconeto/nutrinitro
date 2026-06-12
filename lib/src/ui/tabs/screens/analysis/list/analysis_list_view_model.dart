@@ -15,8 +15,21 @@ class AnalysesListViewModel extends _$AnalysesListViewModel {
 
   @override
   AnalysesListState build() {
-    Future.microtask(() => fetchAnalyses(refresh: true));
+    Future.microtask(() async {
+      await _loadCrops();
+      await fetchAnalyses(refresh: true);
+    });
     return const AnalysesListState();
+  }
+
+  // ─── Load crops for filter chips ───────────────────────────────────────────
+
+  Future<void> _loadCrops() async {
+    final repo = await ref.read(cropRepositoryProvider.future);
+    final result = await repo.all();
+    if (result case Success(value: final crops)) {
+      state = state.copyWith(availableCrops: crops);
+    }
   }
 
   // ─── Fetch ─────────────────────────────────────────────────────────────────
@@ -34,6 +47,10 @@ class AnalysesListViewModel extends _$AnalysesListViewModel {
       offset: _offset,
       limit: _perPage,
       include: {AnalysisInclude.crop, AnalysisInclude.images},
+      statusFilter: state.statusFilter,
+      cropFilter: state.cropFilter,
+      searchQuery: state.searchQuery,
+      sortOrder: state.sortOrder.sqlOrderBy,
     );
 
     switch (result) {
@@ -62,6 +79,10 @@ class AnalysesListViewModel extends _$AnalysesListViewModel {
       offset: _offset,
       limit: _perPage,
       include: {AnalysisInclude.crop, AnalysisInclude.images},
+      statusFilter: state.statusFilter,
+      cropFilter: state.cropFilter,
+      searchQuery: state.searchQuery,
+      sortOrder: state.sortOrder.sqlOrderBy,
     );
 
     switch (result) {
@@ -81,27 +102,46 @@ class AnalysesListViewModel extends _$AnalysesListViewModel {
 
   // ─── Search / Filter / Sort ────────────────────────────────────────────────
 
-  void updateSearch(String query) {
+  Future<void> updateSearch(String query) async {
     state = state.copyWith(searchQuery: query);
+    await fetchAnalyses(refresh: true);
   }
 
-  void updateStatusFilter(AnalysisStatus? status) {
-    state = state.copyWith(
-      statusFilter: status,
-      clearStatusFilter: status == null,
-    );
+  Future<void> toggleStatusFilter(AnalysisStatus status) async {
+    final current = Set<AnalysisStatus>.from(state.statusFilter);
+    if (current.contains(status)) {
+      current.remove(status);
+    } else {
+      current.add(status);
+    }
+    state = state.copyWith(statusFilter: current);
+    await fetchAnalyses(refresh: true);
   }
 
-  void updateSortOrder(AnalysisSortOrder order) {
+  Future<void> toggleCropFilter(int cropId) async {
+    final current = Set<int>.from(state.cropFilter);
+    if (current.contains(cropId)) {
+      current.remove(cropId);
+    } else {
+      current.add(cropId);
+    }
+    state = state.copyWith(cropFilter: current);
+    await fetchAnalyses(refresh: true);
+  }
+
+  Future<void> updateSortOrder(AnalysisSortOrder order) async {
     state = state.copyWith(sortOrder: order);
+    await fetchAnalyses(refresh: true);
   }
 
-  void clearFilters() {
+  Future<void> clearFilters() async {
     state = state.copyWith(
       searchQuery: '',
+      statusFilter: const {},
+      cropFilter: const {},
       sortOrder: AnalysisSortOrder.newestFirst,
-      clearStatusFilter: true,
     );
+    await fetchAnalyses(refresh: true);
   }
 
   // ─── Delete ────────────────────────────────────────────────────────────────

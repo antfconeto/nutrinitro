@@ -45,9 +45,7 @@ class _AnalysisListPageState extends ConsumerState<AnalysisListPage> {
     }
   }
 
-  // ─── Filter / Sort bottom sheet ────────────────────────────────────────────
-
-  void _showFilterSheet(BuildContext context, AnalysesListState state) {
+  void _showFilterSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.white,
@@ -55,11 +53,9 @@ class _AnalysisListPageState extends ConsumerState<AnalysisListPage> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => _FilterSheet(state: state),
+      builder: (_) => const _FilterSheet(),
     );
   }
-
-  // ─── Delete dialog ─────────────────────────────────────────────────────────
 
   Future<void> _confirmDelete(
     BuildContext context,
@@ -157,8 +153,6 @@ class _AnalysisListPageState extends ConsumerState<AnalysisListPage> {
     );
   }
 
-  // ─── Build ─────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(analysesListViewModelProvider);
@@ -171,23 +165,32 @@ class _AnalysisListPageState extends ConsumerState<AnalysisListPage> {
         foregroundColor: AppColors.white,
         elevation: 0,
         actions: [
-          // Filtro indicator + botão
           Stack(
             children: [
               IconButton(
                 icon: const Icon(Icons.tune_outlined),
-                onPressed: () => _showFilterSheet(context, state),
+                onPressed: () => _showFilterSheet(context),
               ),
-              if (state.hasActiveFilters)
+              if (state.activeFilterCount > 0)
                 Positioned(
                   top: 8,
                   right: 8,
                   child: Container(
-                    width: 8,
-                    height: 8,
+                    width: 16,
+                    height: 16,
                     decoration: const BoxDecoration(
                       color: AppColors.orange,
                       shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        '${state.activeFilterCount}',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.white,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -198,7 +201,7 @@ class _AnalysisListPageState extends ConsumerState<AnalysisListPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // ── Barra de busca ───────────────────────────────────────────────
+            // ── Busca ────────────────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: TextField(
@@ -254,45 +257,8 @@ class _AnalysisListPageState extends ConsumerState<AnalysisListPage> {
               ),
             ),
 
-            // ── Chips de filtro ativo ────────────────────────────────────────
-            if (state.hasActiveFilters)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                child: Row(
-                  children: [
-                    if (state.statusFilter != null)
-                      _ActiveFilterChip(
-                        label: state.statusFilter!.label,
-                        onRemove: () => ref
-                            .read(analysesListViewModelProvider.notifier)
-                            .updateStatusFilter(null),
-                      ),
-                    if (state.sortOrder != AnalysisSortOrder.newestFirst)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 6),
-                        child: _ActiveFilterChip(
-                          label: state.sortOrder.label,
-                          onRemove: () => ref
-                              .read(analysesListViewModelProvider.notifier)
-                              .updateSortOrder(AnalysisSortOrder.newestFirst),
-                        ),
-                      ),
-                    const Spacer(),
-                    GestureDetector(
-                      onTap: () {
-                        _searchController.clear();
-                        ref
-                            .read(analysesListViewModelProvider.notifier)
-                            .clearFilters();
-                      },
-                      child: Text(
-                        'Limpar',
-                        style: AppText.small.copyWith(color: AppColors.tomato),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            // ── Chips de filtros ativos ───────────────────────────────────────
+            if (state.hasActiveFilters) _ActiveFiltersRow(state: state),
 
             const SizedBox(height: 8),
 
@@ -319,8 +285,6 @@ class _AnalysisListPageState extends ConsumerState<AnalysisListPage> {
     );
   }
 
-  // ─── Body ──────────────────────────────────────────────────────────────────
-
   Widget _buildBody(BuildContext context, AnalysesListState state) {
     if (state.isLoading && state.analyses.isEmpty) {
       return const Center(
@@ -328,23 +292,19 @@ class _AnalysisListPageState extends ConsumerState<AnalysisListPage> {
       );
     }
 
-    final list = state.filtered;
-
-    if (list.isEmpty) {
-      return _buildEmptyState(
-        hasFilters: state.hasActiveFilters || state.searchQuery.isNotEmpty,
-      );
+    if (state.analyses.isEmpty) {
+      return _buildEmptyState(hasFilters: state.hasActiveFilters);
     }
 
     return ListView.separated(
       controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
-      itemCount: list.length + (state.hasMore ? 1 : 0),
+      itemCount: state.analyses.length + (state.hasMore ? 1 : 0),
       separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (context, index) {
-        if (index >= list.length) return _buildLoadingMore();
-        return _buildCard(context, list[index]);
+        if (index >= state.analyses.length) return _buildLoadingMore();
+        return _buildCard(context, state.analyses[index]);
       },
     );
   }
@@ -365,9 +325,7 @@ class _AnalysisListPageState extends ConsumerState<AnalysisListPage> {
               ),
               const SizedBox(height: 16),
               Text(
-                hasFilters
-                    ? 'Nenhum resultado encontrado'
-                    : 'Nenhuma análise ainda',
+                hasFilters ? 'Nenhum resultado' : 'Nenhuma análise ainda',
                 style: AppText.large.copyWith(color: AppColors.grayMedium),
               ),
               const SizedBox(height: 8),
@@ -410,10 +368,9 @@ class _AnalysisListPageState extends ConsumerState<AnalysisListPage> {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
-          onTap: () => Navigator.of(context).pushNamed(
-            '/analysis_details',
-            arguments: analysis.id,
-          ),
+          onTap: () => Navigator.of(
+            context,
+          ).pushNamed('/analysis_details', arguments: analysis.id),
           borderRadius: BorderRadius.circular(14),
           splashColor: AppColors.green.withOpacity(0.06),
           child: Container(
@@ -513,7 +470,6 @@ class _AnalysisListPageState extends ConsumerState<AnalysisListPage> {
 
   Widget _buildPreview(AnalysisModel analysis) {
     final preview = analysis.previewImage;
-
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -647,24 +603,138 @@ class _AnalysisListPageState extends ConsumerState<AnalysisListPage> {
   }
 }
 
-// ─── Filter Bottom Sheet ──────────────────────────────────────────────────────
+// ─── Active filters row ───────────────────────────────────────────────────────
 
-class _FilterSheet extends ConsumerWidget {
+class _ActiveFiltersRow extends ConsumerWidget {
   final AnalysesListState state;
 
-  const _FilterSheet({required this.state});
+  const _ActiveFiltersRow({required this.state});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final vm = ref.read(analysesListViewModelProvider.notifier);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            ...state.statusFilter.map(
+              (s) => Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: _ActiveChip(
+                  label: s.label,
+                  onRemove: () => vm.toggleStatusFilter(s),
+                ),
+              ),
+            ),
+            ...state.cropFilter.map((id) {
+              final crop = state.availableCrops
+                  .where((c) => c.id == id)
+                  .firstOrNull;
+              if (crop == null) return const SizedBox.shrink();
+              return Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: _ActiveChip(
+                  label: crop.name,
+                  icon: crop.icon,
+                  onRemove: () => vm.toggleCropFilter(id),
+                ),
+              );
+            }),
+            if (state.sortOrder != AnalysisSortOrder.newestFirst)
+              Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: _ActiveChip(
+                  label: state.sortOrder.label,
+                  onRemove: () =>
+                      vm.updateSortOrder(AnalysisSortOrder.newestFirst),
+                ),
+              ),
+            GestureDetector(
+              onTap: () => vm.clearFilters(),
+              child: Text(
+                'Limpar',
+                style: AppText.small.copyWith(color: AppColors.tomato),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ActiveChip extends StatelessWidget {
+  final String label;
+  final String? icon;
+  final VoidCallback onRemove;
+
+  const _ActiveChip({required this.label, required this.onRemove, this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: AppColors.green.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.green.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Image.asset(
+              icon!,
+              width: 14,
+              height: 14,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) =>
+                  const Icon(Icons.grass, size: 12, color: AppColors.green),
+            ),
+            const SizedBox(width: 4),
+          ],
+          Text(
+            label,
+            style: AppText.small.copyWith(
+              color: AppColors.green,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(width: 4),
+          GestureDetector(
+            onTap: onRemove,
+            child: const Icon(Icons.close, size: 14, color: AppColors.green),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Filter Bottom Sheet — ConsumerStatefulWidget para ser reativo ────────────
+
+class _FilterSheet extends ConsumerWidget {
+  const _FilterSheet();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(analysesListViewModelProvider);
+    final vm = ref.read(analysesListViewModelProvider.notifier);
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        24,
+        16,
+        24,
+        MediaQuery.of(context).viewInsets.bottom + 32,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Handle
           Center(
             child: Container(
               width: 40,
@@ -677,9 +747,23 @@ class _FilterSheet extends ConsumerWidget {
           ),
           const SizedBox(height: 20),
 
-          Text(
-            'Filtrar e ordenar',
-            style: AppText.large.copyWith(color: AppColors.navy),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Filtrar e ordenar',
+                  style: AppText.large.copyWith(color: AppColors.navy),
+                ),
+              ),
+              if (state.hasActiveFilters)
+                GestureDetector(
+                  onTap: () => vm.clearFilters(),
+                  child: Text(
+                    'Limpar tudo',
+                    style: AppText.small.copyWith(color: AppColors.tomato),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 20),
 
@@ -695,24 +779,46 @@ class _FilterSheet extends ConsumerWidget {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: [
-              _FilterChip(
-                label: 'Todos',
-                selected: state.statusFilter == null,
-                onTap: () => vm.updateStatusFilter(null),
-              ),
-              ...AnalysisStatus.values.map(
-                (s) => _FilterChip(
-                  label: s.label,
-                  selected: state.statusFilter == s,
-                  color: _statusColor(s),
-                  onTap: () => vm.updateStatusFilter(s),
-                ),
-              ),
-            ],
+            children: AnalysisStatus.values
+                .map(
+                  (s) => _FilterChip(
+                    label: s.label,
+                    selected: state.statusFilter.contains(s),
+                    color: _statusColor(s),
+                    onTap: () => vm.toggleStatusFilter(s),
+                  ),
+                )
+                .toList(),
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
+
+          // ── Cultura ─────────────────────────────────────────────────────────
+          if (state.availableCrops.isNotEmpty) ...[
+            Text(
+              'Cultura',
+              style: AppText.body.copyWith(
+                color: AppColors.grayMedium,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: state.availableCrops
+                  .map(
+                    (crop) => _FilterChip(
+                      label: crop.name,
+                      icon: crop.icon,
+                      selected: state.cropFilter.contains(crop.id),
+                      onTap: () => vm.toggleCropFilter(crop.id!),
+                    ),
+                  )
+                  .toList(),
+            ),
+            const SizedBox(height: 20),
+          ],
 
           // ── Ordenação ────────────────────────────────────────────────────────
           Text(
@@ -739,7 +845,6 @@ class _FilterSheet extends ConsumerWidget {
 
           const SizedBox(height: 24),
 
-          // ── Aplicar ──────────────────────────────────────────────────────────
           SizedBox(
             width: double.infinity,
             height: 50,
@@ -753,7 +858,7 @@ class _FilterSheet extends ConsumerWidget {
                 elevation: 0,
               ),
               child: const Text(
-                'Aplicar',
+                'Fechar',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -783,6 +888,7 @@ class _FilterSheet extends ConsumerWidget {
 
 class _FilterChip extends StatelessWidget {
   final String label;
+  final String? icon;
   final bool selected;
   final Color? color;
   final VoidCallback onTap;
@@ -791,6 +897,7 @@ class _FilterChip extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.onTap,
+    this.icon,
     this.color,
   });
 
@@ -802,7 +909,7 @@ class _FilterChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: selected ? activeColor.withOpacity(0.12) : AppColors.white,
           borderRadius: BorderRadius.circular(20),
@@ -811,50 +918,30 @@ class _FilterChip extends StatelessWidget {
             width: selected ? 1.5 : 1,
           ),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-            color: selected ? activeColor : AppColors.grayMedium,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ActiveFilterChip extends StatelessWidget {
-  final String label;
-  final VoidCallback onRemove;
-
-  const _ActiveFilterChip({required this.label, required this.onRemove});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: AppColors.green.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.green.withOpacity(0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: AppText.small.copyWith(
-              color: AppColors.green,
-              fontWeight: FontWeight.w500,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Image.asset(
+                icon!,
+                width: 16,
+                height: 16,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) =>
+                    const Icon(Icons.grass, size: 14, color: AppColors.green),
+              ),
+              const SizedBox(width: 6),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                color: selected ? activeColor : AppColors.grayMedium,
+              ),
             ),
-          ),
-          const SizedBox(width: 4),
-          GestureDetector(
-            onTap: onRemove,
-            child: const Icon(Icons.close, size: 14, color: AppColors.green),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

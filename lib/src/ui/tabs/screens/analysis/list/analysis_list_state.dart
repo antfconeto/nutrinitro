@@ -1,15 +1,14 @@
 import 'package:equatable/equatable.dart';
 import 'package:nutrinitro/src/core/constants/analysis_status.dart';
 import 'package:nutrinitro/src/data/models/analysis_model.dart';
+import 'package:nutrinitro/src/data/models/crop_model.dart';
 
 enum AnalysisSortOrder {
   newestFirst,
   oldestFirst,
   titleAZ,
-  titleZA,
-}
+  titleZA;
 
-extension AnalysisSortOrderLabel on AnalysisSortOrder {
   String get label {
     switch (this) {
       case AnalysisSortOrder.newestFirst:
@@ -22,6 +21,19 @@ extension AnalysisSortOrderLabel on AnalysisSortOrder {
         return 'Título Z→A';
     }
   }
+
+  String get sqlOrderBy {
+    switch (this) {
+      case AnalysisSortOrder.newestFirst:
+        return 'datetime DESC';
+      case AnalysisSortOrder.oldestFirst:
+        return 'datetime ASC';
+      case AnalysisSortOrder.titleAZ:
+        return 'title ASC';
+      case AnalysisSortOrder.titleZA:
+        return 'title DESC';
+    }
+  }
 }
 
 class AnalysesListState extends Equatable {
@@ -30,10 +42,12 @@ class AnalysesListState extends Equatable {
   final bool hasMore;
   final String? errorMessage;
   final List<AnalysisModel> analyses;
+  final List<CropModel> availableCrops;
 
-  // Search / filter / sort
+  // Filters
   final String searchQuery;
-  final AnalysisStatus? statusFilter;
+  final Set<AnalysisStatus> statusFilter;
+  final Set<int> cropFilter;
   final AnalysisSortOrder sortOrder;
 
   const AnalysesListState({
@@ -42,39 +56,23 @@ class AnalysesListState extends Equatable {
     this.hasMore = true,
     this.errorMessage,
     this.analyses = const [],
+    this.availableCrops = const [],
     this.searchQuery = '',
-    this.statusFilter,
+    this.statusFilter = const {},
+    this.cropFilter = const {},
     this.sortOrder = AnalysisSortOrder.newestFirst,
   });
 
-  List<AnalysisModel> get filtered {
-    var list = analyses.where((a) {
-      final matchesQuery =
-          searchQuery.isEmpty ||
-          a.title.toLowerCase().contains(searchQuery.toLowerCase()) ||
-          (a.crop?.name.toLowerCase().contains(searchQuery.toLowerCase()) ??
-              false);
+  bool get hasActiveFilters =>
+      searchQuery.isNotEmpty ||
+      statusFilter.isNotEmpty ||
+      cropFilter.isNotEmpty ||
+      sortOrder != AnalysisSortOrder.newestFirst;
 
-      final matchesStatus = statusFilter == null || a.status == statusFilter;
-
-      return matchesQuery && matchesStatus;
-    }).toList();
-
-    switch (sortOrder) {
-      case AnalysisSortOrder.newestFirst:
-        list.sort((a, b) => b.datetime.compareTo(a.datetime));
-      case AnalysisSortOrder.oldestFirst:
-        list.sort((a, b) => a.datetime.compareTo(b.datetime));
-      case AnalysisSortOrder.titleAZ:
-        list.sort((a, b) => a.title.compareTo(b.title));
-      case AnalysisSortOrder.titleZA:
-        list.sort((a, b) => b.title.compareTo(a.title));
-    }
-
-    return list;
-  }
-
-  bool get hasActiveFilters => statusFilter != null || searchQuery.isNotEmpty;
+  int get activeFilterCount =>
+      (statusFilter.isNotEmpty ? 1 : 0) +
+      (cropFilter.isNotEmpty ? 1 : 0) +
+      (sortOrder != AnalysisSortOrder.newestFirst ? 1 : 0);
 
   AnalysesListState copyWith({
     bool? isLoading,
@@ -82,11 +80,12 @@ class AnalysesListState extends Equatable {
     bool? hasMore,
     String? errorMessage,
     List<AnalysisModel>? analyses,
+    List<CropModel>? availableCrops,
     String? searchQuery,
-    AnalysisStatus? statusFilter,
+    Set<AnalysisStatus>? statusFilter,
+    Set<int>? cropFilter,
     AnalysisSortOrder? sortOrder,
     bool clearError = false,
-    bool clearStatusFilter = false,
   }) {
     return AnalysesListState(
       isLoading: isLoading ?? this.isLoading,
@@ -94,10 +93,10 @@ class AnalysesListState extends Equatable {
       hasMore: hasMore ?? this.hasMore,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       analyses: analyses ?? this.analyses,
+      availableCrops: availableCrops ?? this.availableCrops,
       searchQuery: searchQuery ?? this.searchQuery,
-      statusFilter: clearStatusFilter
-          ? null
-          : (statusFilter ?? this.statusFilter),
+      statusFilter: statusFilter ?? this.statusFilter,
+      cropFilter: cropFilter ?? this.cropFilter,
       sortOrder: sortOrder ?? this.sortOrder,
     );
   }
@@ -109,8 +108,10 @@ class AnalysesListState extends Equatable {
     hasMore,
     errorMessage,
     analyses,
+    availableCrops,
     searchQuery,
     statusFilter,
+    cropFilter,
     sortOrder,
   ];
 }
