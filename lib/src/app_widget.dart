@@ -24,6 +24,8 @@ class AppWidget extends ConsumerWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const SplashPage(),
+
+        // Main
         '/tabs': (context) {
           final args = ModalRoute.of(context)?.settings.arguments;
           final initialIndex = args is int ? args : 0;

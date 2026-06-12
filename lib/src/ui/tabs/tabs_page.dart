@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nutrinitro/src/core/themes/app_colors.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/dashboard/dashboard_page.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/drone/drone_page.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/history/history_page.dart';
-import 'package:nutrinitro/src/ui/tabs/screens/home/home_page.dart';
 
 class TabsPage extends ConsumerStatefulWidget {
   final int initialIndex;
@@ -24,8 +25,9 @@ class _TabsPageState extends ConsumerState<TabsPage> {
   }
 
   final List<Widget> _pages = <Widget>[
-    const HomePage(),
+    const DashboardPage(),
     const HistoryPage(),
+    const DronePage(),
   ];
 
   @override
@@ -59,15 +61,21 @@ class _TabsPageState extends ConsumerState<TabsPage> {
                 children: [
                   _buildNavItem(
                     index: 0,
-                    icon: Icons.home_outlined,
-                    activeIcon: Icons.home,
+                    icon: Icons.dashboard_outlined,
+                    activeIcon: Icons.dashboard,
                     label: 'Início',
                   ),
                   _buildNavItem(
                     index: 1,
-                    icon: Icons.history_outlined,
-                    activeIcon: Icons.history,
-                    label: 'Histórico',
+                    icon: Icons.science_outlined,
+                    activeIcon: Icons.science,
+                    label: 'Análises',
+                  ),
+                  _buildNavItem(
+                    index: 2,
+                    icon: Icons.flight_outlined,
+                    activeIcon: Icons.flight,
+                    label: 'Drone',
                   ),
                 ],
               ),
@@ -94,7 +102,6 @@ class _TabsPageState extends ConsumerState<TabsPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Indicador superior
             AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOut,
@@ -106,8 +113,6 @@ class _TabsPageState extends ConsumerState<TabsPage> {
               ),
             ),
             const SizedBox(height: 8),
-
-            // Ícone
             AnimatedScale(
               scale: isSelected ? 1.1 : 1.0,
               duration: const Duration(milliseconds: 200),
@@ -119,8 +124,6 @@ class _TabsPageState extends ConsumerState<TabsPage> {
               ),
             ),
             const SizedBox(height: 4),
-
-            // Label
             AnimatedDefaultTextStyle(
               duration: const Duration(milliseconds: 200),
               curve: Curves.easeInOut,
