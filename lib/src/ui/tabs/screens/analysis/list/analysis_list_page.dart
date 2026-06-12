@@ -370,7 +370,7 @@ class _AnalysisListPageState extends ConsumerState<AnalysisListPage> {
         child: InkWell(
           onTap: () => Navigator.of(
             context,
-          ).pushNamed('/analysis_details', arguments: analysis.id),
+          ).pushNamed('/analysis/details', arguments: analysis.id),
           borderRadius: BorderRadius.circular(14),
           splashColor: AppColors.green.withOpacity(0.06),
           child: Container(

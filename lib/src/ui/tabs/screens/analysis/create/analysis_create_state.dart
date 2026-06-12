@@ -1,8 +1,6 @@
 import 'dart:io';
-
 import 'package:equatable/equatable.dart';
 import 'package:nutrinitro/src/data/models/crop_model.dart';
-import 'package:nutrinitro/src/data/services/analysis/analysis_registry.dart';
 
 class AnalysisCreateState extends Equatable {
   final bool isLoading;
@@ -15,10 +13,8 @@ class AnalysisCreateState extends Equatable {
   final String? notes;
   final List<CropModel> crops;
   final CropModel? selectedCrop;
-  final List<File>? images;
-  final List<String?>? imageSourceNames;
-  final List<RegisteredAnalysis> analyses;
-  final RegisteredAnalysis? selectedAnalysis;
+  final List<File> images;
+  final List<String?> imageSourceNames;
 
   const AnalysisCreateState({
     this.isLoading = false,
@@ -31,32 +27,24 @@ class AnalysisCreateState extends Equatable {
     this.notes,
     this.crops = const [],
     this.selectedCrop,
-    this.images = const <File>[],
-    this.imageSourceNames = const <String?>[],
-    this.analyses = const [],
-    this.selectedAnalysis,
+    this.images = const [],
+    this.imageSourceNames = const [],
   });
-
-  List<File> get resolvedImages => images ?? const <File>[];
 
   bool get isFormValid =>
       title.isNotEmpty &&
       datetime != null &&
       selectedCrop != null &&
-      resolvedImages.isNotEmpty;
+      images.isNotEmpty;
 
   bool get titleError => submitted && title.isEmpty;
   bool get datetimeError => submitted && datetime == null;
   bool get cropError => submitted && selectedCrop == null;
-  bool get imagesError => submitted && resolvedImages.isEmpty;
-
-  List<String?> get resolvedImageSourceNames =>
-      imageSourceNames ?? const <String?>[];
+  bool get imagesError => submitted && images.isEmpty;
 
   String? sourceNameAt(int index) {
-    final names = resolvedImageSourceNames;
-    if (index < 0 || index >= names.length) return null;
-    return names[index];
+    if (index < 0 || index >= imageSourceNames.length) return null;
+    return imageSourceNames[index];
   }
 
   AnalysisCreateState copyWith({
@@ -72,14 +60,11 @@ class AnalysisCreateState extends Equatable {
     CropModel? selectedCrop,
     List<File>? images,
     List<String?>? imageSourceNames,
-    List<RegisteredAnalysis>? analyses,
-    RegisteredAnalysis? selectedAnalysis,
     bool clearError = false,
     bool clearSuccess = false,
     bool clearDatetime = false,
     bool clearNotes = false,
     bool clearSelectedCrop = false,
-    bool clearSelectedAnalysis = false,
   }) {
     return AnalysisCreateState(
       isLoading: isLoading ?? this.isLoading,
@@ -96,12 +81,8 @@ class AnalysisCreateState extends Equatable {
       selectedCrop: clearSelectedCrop
           ? null
           : (selectedCrop ?? this.selectedCrop),
-      images: images ?? this.resolvedImages,
-      imageSourceNames: imageSourceNames ?? this.resolvedImageSourceNames,
-      analyses: analyses ?? this.analyses,
-      selectedAnalysis: clearSelectedAnalysis
-          ? null
-          : (selectedAnalysis ?? this.selectedAnalysis),
+      images: images ?? this.images,
+      imageSourceNames: imageSourceNames ?? this.imageSourceNames,
     );
   }
 
@@ -119,7 +100,5 @@ class AnalysisCreateState extends Equatable {
     selectedCrop,
     images,
     imageSourceNames,
-    analyses,
-    selectedAnalysis,
   ];
 }

@@ -8,7 +8,6 @@ import 'package:nutrinitro/src/data/models/image_model.dart';
 import 'package:nutrinitro/src/data/models/local_image_pick.dart';
 import 'package:nutrinitro/src/data/repositories/repositories_provider.dart';
 import 'package:nutrinitro/src/data/services/services_provider.dart';
-import 'package:nutrinitro/src/data/services/analysis/analysis_registry.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/analysis/create/analysis_create_state.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -19,10 +18,10 @@ class AnalysisCreateViewModel extends _$AnalysisCreateViewModel {
   @override
   AnalysisCreateState build() {
     Future.microtask(() => fetchCrops());
-    return AnalysisCreateState(
-      analyses: AnalysisRegistry.all,
-    );
+    return const AnalysisCreateState();
   }
+
+  // ─── Load ──────────────────────────────────────────────────────────────────
 
   Future<void> fetchCrops() async {
     state = state.copyWith(isLoading: true, clearError: true);
@@ -38,7 +37,6 @@ class AnalysisCreateViewModel extends _$AnalysisCreateViewModel {
           selectedCrop: null,
         );
       case Failure(:final error):
-        print('Error fetching crops: $error');
         state = state.copyWith(
           isLoading: false,
           errorMessage: error.toString(),
@@ -46,58 +44,41 @@ class AnalysisCreateViewModel extends _$AnalysisCreateViewModel {
     }
   }
 
-  void updateTitle(String value) {
-    state = state.copyWith(title: value, clearError: true);
-  }
+  // ─── Form ──────────────────────────────────────────────────────────────────
 
-  void updateDatetime(DateTime value) {
-    state = state.copyWith(datetime: value, clearError: true);
-  }
+  void updateTitle(String value) =>
+      state = state.copyWith(title: value, clearError: true);
 
-  void updateNotes(String? value) {
-    state = state.copyWith(notes: value, clearError: true);
-  }
+  void updateDatetime(DateTime value) =>
+      state = state.copyWith(datetime: value, clearError: true);
 
-  void selectAnalysis(RegisteredAnalysis analysis) {
-    final CropModel? newSelectedCrop = (state.selectedCrop != null &&
-            analysis.supportedCropNames.contains(state.selectedCrop!.name))
-        ? state.selectedCrop
-        : null;
+  void updateNotes(String? value) =>
+      state = state.copyWith(notes: value, clearError: true);
 
-    state = state.copyWith(
-      selectedAnalysis: analysis,
-      selectedCrop: newSelectedCrop,
-      clearSelectedCrop: newSelectedCrop == null,
-      clearError: true,
-    );
-  }
+  void selectCrop(CropModel crop) =>
+      state = state.copyWith(selectedCrop: crop, clearError: true);
 
-  void selectCrop(CropModel crop) {
-    state = state.copyWith(selectedCrop: crop, clearError: true);
-  }
+  // ─── Images ────────────────────────────────────────────────────────────────
 
   Future<void> _appendImages(List<LocalImagePick> picks) async {
     if (picks.isEmpty) return;
 
-    final Directory stagingDir = Directory(
-      p.join((await getTemporaryDirectory()).path, 'home_picks'),
+    final stagingDir = Directory(
+      p.join((await getTemporaryDirectory()).path, 'analysis_picks'),
     );
-    if (!await stagingDir.exists()) {
-      await stagingDir.create(recursive: true);
-    }
+    if (!await stagingDir.exists()) await stagingDir.create(recursive: true);
 
-    final List<File> stagedFiles = [];
-    final List<String?> stagedNames = [];
-    final int baseIndex = state.resolvedImages.length;
+    final stagedFiles = <File>[];
+    final stagedNames = <String?>[];
+    final baseIndex = state.images.length;
 
     for (int i = 0; i < picks.length; i++) {
-      final LocalImagePick pick = picks[i];
-
-      final String ext = p.extension(pick.file.path).isNotEmpty
+      final pick = picks[i];
+      final ext = p.extension(pick.file.path).isNotEmpty
           ? p.extension(pick.file.path)
           : '.jpg';
-      final String safeName = _safePickName(pick.sourceName, baseIndex + i, ext);
-      final File dest = File(p.join(stagingDir.path, safeName));
+      final name = _safePickName(pick.sourceName, baseIndex + i, ext);
+      final dest = File(p.join(stagingDir.path, name));
 
       try {
         if (await pick.file.exists()) {
@@ -107,8 +88,7 @@ class AnalysisCreateViewModel extends _$AnalysisCreateViewModel {
         } else {
           continue;
         }
-      } catch (e) {
-        print('Error staging image ${pick.sourceName ?? i}: $e');
+      } catch (_) {
         continue;
       }
 
@@ -119,8 +99,8 @@ class AnalysisCreateViewModel extends _$AnalysisCreateViewModel {
     if (!ref.mounted || stagedFiles.isEmpty) return;
 
     state = state.copyWith(
-      images: [...state.resolvedImages, ...stagedFiles],
-      imageSourceNames: [...state.resolvedImageSourceNames, ...stagedNames],
+      images: [...state.images, ...stagedFiles],
+      imageSourceNames: [...state.imageSourceNames, ...stagedNames],
       clearError: true,
     );
   }
@@ -135,12 +115,9 @@ class AnalysisCreateViewModel extends _$AnalysisCreateViewModel {
 
   Future<void> pickFromCamera() async {
     try {
-      if (Platform.isAndroid) {
-        await Permission.accessMediaLocation.request();
-      }
+      if (Platform.isAndroid) await Permission.accessMediaLocation.request();
 
-      final cameraService = ref.read(cameraServiceProvider);
-      final file = await cameraService.pickFromCamera();
+      final file = await ref.read(cameraServiceProvider).pickFromCamera();
       if (file == null) return;
 
       final cropped = await ref
@@ -148,66 +125,54 @@ class AnalysisCreateViewModel extends _$AnalysisCreateViewModel {
           .crop(file.path);
       await _appendImages([LocalImagePick(cropped ?? file)]);
     } catch (e) {
-      print('Error picking image from camera: $e');
       state = state.copyWith(errorMessage: 'Erro ao capturar imagem: $e');
     }
   }
 
   Future<void> pickFromGallery() async {
     try {
-      if (Platform.isAndroid) {
-        await Permission.accessMediaLocation.request();
-      }
+      if (Platform.isAndroid) await Permission.accessMediaLocation.request();
 
-      final cameraService = ref.read(cameraServiceProvider);
-      final picks = await cameraService.pickMultipleFromGallery();
+      final picks = await ref
+          .read(cameraServiceProvider)
+          .pickMultipleFromGallery();
       if (picks.isEmpty) return;
 
       await _appendImages(picks);
     } catch (e) {
-      print('Error picking images from gallery: $e');
       state = state.copyWith(errorMessage: 'Erro ao selecionar imagens: $e');
     }
   }
 
   Future<void> cropImage(int index) async {
     try {
-      final file = state.resolvedImages[index];
-      final sourceName = state.sourceNameAt(index);
+      final file = state.images[index];
       final cropped = await ref
           .read(imageCropperServiceProvider)
           .crop(file.path);
       if (cropped == null) return;
 
-      final updatedImages = List<File>.from(state.resolvedImages)..[index] = cropped;
+      final updatedImages = List<File>.from(state.images)..[index] = cropped;
       state = state.copyWith(images: updatedImages);
-      // sourceName permanece o mesmo após recorte
-      if (sourceName != null && index < state.resolvedImageSourceNames.length) {
-        final names = List<String?>.from(state.resolvedImageSourceNames);
-        names[index] = sourceName;
-        state = state.copyWith(imageSourceNames: names);
-      }
     } catch (e) {
-      print('Error cropping image: $e');
       state = state.copyWith(errorMessage: 'Erro ao recortar imagem: $e');
     }
   }
 
   void removeImage(int index) {
-    final updatedImages = List<File>.from(state.resolvedImages)..removeAt(index);
-    final updatedNames = List<String?>.from(state.resolvedImageSourceNames);
-    if (index < updatedNames.length) {
-      updatedNames.removeAt(index);
-    }
+    final updatedImages = List<File>.from(state.images)..removeAt(index);
+    final updatedNames = List<String?>.from(state.imageSourceNames);
+    if (index < updatedNames.length) updatedNames.removeAt(index);
     state = state.copyWith(
       images: updatedImages,
       imageSourceNames: updatedNames,
     );
   }
 
+  // ─── Submit ────────────────────────────────────────────────────────────────
+
   Future<void> submit() async {
     state = state.copyWith(submitted: true);
-
     if (!state.isFormValid) return;
 
     state = state.copyWith(isSubmitting: true, clearError: true);
@@ -229,7 +194,6 @@ class AnalysisCreateViewModel extends _$AnalysisCreateViewModel {
 
       switch (createResult) {
         case Failure(:final error):
-          print('Error submitting analysis: $error');
           state = state.copyWith(
             isSubmitting: false,
             errorMessage: error.toString(),
@@ -239,8 +203,8 @@ class AnalysisCreateViewModel extends _$AnalysisCreateViewModel {
         case Success(value: final analysis):
           final analysisId = analysis.id!;
 
-          for (int i = 0; i < state.resolvedImages.length; i++) {
-            final file = state.resolvedImages[i];
+          for (int i = 0; i < state.images.length; i++) {
+            final file = state.images[i];
             final metadata = await exifService.readMetadata(file.path);
             final permanentPath = await storageService.saveImage(
               analysisId: analysisId,
@@ -266,16 +230,14 @@ class AnalysisCreateViewModel extends _$AnalysisCreateViewModel {
             successMessage: 'Análise criada com sucesso!',
             submitted: false,
             title: '',
-            images: const <File>[],
-            imageSourceNames: const <String?>[],
+            images: const [],
+            imageSourceNames: const [],
             clearDatetime: true,
             clearNotes: true,
             clearSelectedCrop: true,
-            clearSelectedAnalysis: true,
           );
       }
     } catch (e) {
-      print('Error submitting analysis: $e');
       state = state.copyWith(
         isSubmitting: false,
         errorMessage: 'Erro inesperado: $e',

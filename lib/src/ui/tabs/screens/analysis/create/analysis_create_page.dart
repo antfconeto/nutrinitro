@@ -1,10 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:nutrinitro/src/core/themes/app_colors.dart';
 import 'package:nutrinitro/src/core/themes/app_text.dart';
 import 'package:nutrinitro/src/data/models/crop_model.dart';
-import 'dart:io';
 import 'package:nutrinitro/src/ui/tabs/screens/analysis/create/analysis_create_state.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/analysis/create/analysis_create_view_model.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
@@ -35,6 +35,8 @@ class _AnalysisCreatePageState extends ConsumerState<AnalysisCreatePage> {
     super.dispose();
   }
 
+  // ─── Date + Time picker ────────────────────────────────────────────────────
+
   Future<void> _pickDatetime(BuildContext context) async {
     final now = DateTime.now();
 
@@ -56,14 +58,11 @@ class _AnalysisCreatePageState extends ConsumerState<AnalysisCreatePage> {
 
     if (time == null) return;
 
-    final datetime = DateTime(
-      date.year,
-      date.month,
-      date.day,
-      time.hour,
-      time.minute,
-    );
-    ref.read(analysisCreateViewModelProvider.notifier).updateDatetime(datetime);
+    ref
+        .read(analysisCreateViewModelProvider.notifier)
+        .updateDatetime(
+          DateTime(date.year, date.month, date.day, time.hour, time.minute),
+        );
   }
 
   Widget _pickerTheme(BuildContext context, Widget? child) {
@@ -78,6 +77,8 @@ class _AnalysisCreatePageState extends ConsumerState<AnalysisCreatePage> {
       child: child!,
     );
   }
+
+  // ─── Image bottom sheet ────────────────────────────────────────────────────
 
   void _showImageBottomSheet(BuildContext context) {
     showModalBottomSheet(
@@ -115,9 +116,11 @@ class _AnalysisCreatePageState extends ConsumerState<AnalysisCreatePage> {
                 description: 'Abre a câmera com opção de recorte',
                 onTap: () {
                   Navigator.pop(context);
-                  Future.microtask(() {
-                    ref.read(analysisCreateViewModelProvider.notifier).pickFromCamera();
-                  });
+                  Future.microtask(
+                    () => ref
+                        .read(analysisCreateViewModelProvider.notifier)
+                        .pickFromCamera(),
+                  );
                 },
               ),
               const SizedBox(height: 12),
@@ -127,9 +130,11 @@ class _AnalysisCreatePageState extends ConsumerState<AnalysisCreatePage> {
                 description: 'Selecione uma ou mais imagens',
                 onTap: () {
                   Navigator.pop(context);
-                  Future.microtask(() {
-                    ref.read(analysisCreateViewModelProvider.notifier).pickFromGallery();
-                  });
+                  Future.microtask(
+                    () => ref
+                        .read(analysisCreateViewModelProvider.notifier)
+                        .pickFromGallery(),
+                  );
                 },
               ),
               const SizedBox(height: 8),
@@ -178,11 +183,17 @@ class _AnalysisCreatePageState extends ConsumerState<AnalysisCreatePage> {
     );
   }
 
+  // ─── Build ─────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(analysisCreateViewModelProvider);
 
-    ref.listen<AnalysisCreateState>(analysisCreateViewModelProvider, (previous, next) {
+    ref.listen<AnalysisCreateState>(analysisCreateViewModelProvider, (
+      previous,
+      next,
+    ) {
+      // Limpa controllers após sucesso
       if (previous?.title != '' && next.title == '') {
         _titleController.clear();
         _notesController.clear();
@@ -226,12 +237,14 @@ class _AnalysisCreatePageState extends ConsumerState<AnalysisCreatePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // ── Título ──────────────────────────────────────────────────
                   _sectionLabel('Título', required: true),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _titleController,
-                    onChanged: (v) =>
-                        ref.read(analysisCreateViewModelProvider.notifier).updateTitle(v),
+                    onChanged: (v) => ref
+                        .read(analysisCreateViewModelProvider.notifier)
+                        .updateTitle(v),
                     decoration: _inputDecoration(
                       hint: 'Ex: Talhão norte — parcela 3',
                       hasError: state.titleError,
@@ -242,6 +255,7 @@ class _AnalysisCreatePageState extends ConsumerState<AnalysisCreatePage> {
 
                   const SizedBox(height: 24),
 
+                  // ── Data e Horário ──────────────────────────────────────────
                   _sectionLabel('Data e horário', required: true),
                   const SizedBox(height: 8),
                   InkWell(
@@ -299,6 +313,7 @@ class _AnalysisCreatePageState extends ConsumerState<AnalysisCreatePage> {
 
                   const SizedBox(height: 24),
 
+                  // ── Tipo de Cultura ─────────────────────────────────────────
                   _sectionLabel('Tipo de cultura', required: true),
                   const SizedBox(height: 8),
                   Container(
@@ -369,6 +384,7 @@ class _AnalysisCreatePageState extends ConsumerState<AnalysisCreatePage> {
 
                   const SizedBox(height: 24),
 
+                  // ── Observações ─────────────────────────────────────────────
                   _sectionLabel('Observações'),
                   const SizedBox(height: 8),
                   TextFormField(
@@ -385,13 +401,14 @@ class _AnalysisCreatePageState extends ConsumerState<AnalysisCreatePage> {
 
                   const SizedBox(height: 24),
 
+                  // ── Imagens ─────────────────────────────────────────────────
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       _sectionLabel('Imagens', required: true),
-                      if (state.resolvedImages.isNotEmpty)
+                      if (state.images.isNotEmpty)
                         Text(
-                          '${state.resolvedImages.length} selecionada${state.resolvedImages.length > 1 ? 's' : ''}',
+                          '${state.images.length} selecionada${state.images.length > 1 ? 's' : ''}',
                           style: AppText.small.copyWith(color: AppColors.green),
                         ),
                     ],
@@ -426,7 +443,7 @@ class _AnalysisCreatePageState extends ConsumerState<AnalysisCreatePage> {
                               spacing: spacing,
                               runSpacing: spacing,
                               children: [
-                                ...state.resolvedImages.asMap().entries.map(
+                                ...state.images.asMap().entries.map(
                                   (e) => _imageThumb(
                                     e.value,
                                     e.key,
@@ -447,6 +464,7 @@ class _AnalysisCreatePageState extends ConsumerState<AnalysisCreatePage> {
 
                   const SizedBox(height: 40),
 
+                  // ── Botão Criar ─────────────────────────────────────────────
                   SizedBox(
                     width: double.infinity,
                     height: 54,
@@ -491,6 +509,8 @@ class _AnalysisCreatePageState extends ConsumerState<AnalysisCreatePage> {
             ),
     );
   }
+
+  // ─── Helpers ───────────────────────────────────────────────────────────────
 
   Widget _sectionLabel(String label, {bool required = false}) {
     return RichText(
@@ -578,16 +598,22 @@ class _AnalysisCreatePageState extends ConsumerState<AnalysisCreatePage> {
                 width: size,
                 height: size,
                 color: AppColors.grayLight,
-                child: const Icon(Icons.broken_image_outlined, color: AppColors.grayMedium),
+                child: const Icon(
+                  Icons.broken_image_outlined,
+                  color: AppColors.grayMedium,
+                ),
               ),
             ),
           ),
+
+          // Botão remover
           Positioned(
             top: 4,
             right: 4,
             child: GestureDetector(
-              onTap: () =>
-                  ref.read(analysisCreateViewModelProvider.notifier).removeImage(index),
+              onTap: () => ref
+                  .read(analysisCreateViewModelProvider.notifier)
+                  .removeImage(index),
               child: Container(
                 width: 24,
                 height: 24,
@@ -603,12 +629,15 @@ class _AnalysisCreatePageState extends ConsumerState<AnalysisCreatePage> {
               ),
             ),
           ),
+
+          // Botão crop
           Positioned(
             top: 4,
             left: 4,
             child: GestureDetector(
-              onTap: () =>
-                  ref.read(analysisCreateViewModelProvider.notifier).cropImage(index),
+              onTap: () => ref
+                  .read(analysisCreateViewModelProvider.notifier)
+                  .cropImage(index),
               child: Container(
                 width: 24,
                 height: 24,
@@ -620,6 +649,8 @@ class _AnalysisCreatePageState extends ConsumerState<AnalysisCreatePage> {
               ),
             ),
           ),
+
+          // Nome da fonte
           if (sourceName != null && sourceName.isNotEmpty)
             Positioned(
               bottom: 4,
