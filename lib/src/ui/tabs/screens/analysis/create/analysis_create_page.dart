@@ -7,6 +7,7 @@ import 'package:nutrinitro/src/core/themes/app_text.dart';
 import 'package:nutrinitro/src/data/models/crop_model.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/analysis/create/analysis_create_state.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/analysis/create/analysis_create_view_model.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/list/analysis_list_view_model.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
@@ -213,7 +214,16 @@ class _AnalysisCreatePageState extends ConsumerState<AnalysisCreatePage> {
         Future.microtask(() {
           showTopSnackBar(
             Overlay.of(context),
-            CustomSnackBar.success(message: next.successMessage!),
+            CustomSnackBar.success(
+              message: next.successMessage!,
+            ),
+          );
+
+          ref.invalidate(analysesListViewModelProvider);
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            '/tabs',
+            (route) => false,
+            arguments: 1,
           );
           ref.read(analysisCreateViewModelProvider.notifier).clearSuccess();
         });
