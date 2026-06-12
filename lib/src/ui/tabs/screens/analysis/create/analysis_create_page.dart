@@ -5,19 +5,19 @@ import 'package:nutrinitro/src/core/themes/app_colors.dart';
 import 'package:nutrinitro/src/core/themes/app_text.dart';
 import 'package:nutrinitro/src/data/models/crop_model.dart';
 import 'dart:io';
-import 'package:nutrinitro/src/ui/tabs/screens/analysis/create/home_state.dart';
-import 'package:nutrinitro/src/ui/tabs/screens/analysis/create/home_view_model.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/create/analysis_create_state.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/create/analysis_create_view_model.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
-class HomePage extends ConsumerStatefulWidget {
-  const HomePage({super.key});
+class AnalysisCreatePage extends ConsumerStatefulWidget {
+  const AnalysisCreatePage({super.key});
 
   @override
-  ConsumerState<HomePage> createState() => _HomePageState();
+  ConsumerState<AnalysisCreatePage> createState() => _AnalysisCreatePageState();
 }
 
-class _HomePageState extends ConsumerState<HomePage> {
+class _AnalysisCreatePageState extends ConsumerState<AnalysisCreatePage> {
   late final TextEditingController _titleController;
   late final TextEditingController _notesController;
 
@@ -63,7 +63,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       time.hour,
       time.minute,
     );
-    ref.read(homeViewModelProvider.notifier).updateDatetime(datetime);
+    ref.read(analysisCreateViewModelProvider.notifier).updateDatetime(datetime);
   }
 
   Widget _pickerTheme(BuildContext context, Widget? child) {
@@ -116,7 +116,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 onTap: () {
                   Navigator.pop(context);
                   Future.microtask(() {
-                    ref.read(homeViewModelProvider.notifier).pickFromCamera();
+                    ref.read(analysisCreateViewModelProvider.notifier).pickFromCamera();
                   });
                 },
               ),
@@ -128,7 +128,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 onTap: () {
                   Navigator.pop(context);
                   Future.microtask(() {
-                    ref.read(homeViewModelProvider.notifier).pickFromGallery();
+                    ref.read(analysisCreateViewModelProvider.notifier).pickFromGallery();
                   });
                 },
               ),
@@ -180,9 +180,9 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(homeViewModelProvider);
+    final state = ref.watch(analysisCreateViewModelProvider);
 
-    ref.listen<HomeState>(homeViewModelProvider, (previous, next) {
+    ref.listen<AnalysisCreateState>(analysisCreateViewModelProvider, (previous, next) {
       if (previous?.title != '' && next.title == '') {
         _titleController.clear();
         _notesController.clear();
@@ -194,7 +194,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             Overlay.of(context),
             CustomSnackBar.error(message: next.errorMessage!),
           );
-          ref.read(homeViewModelProvider.notifier).clearError();
+          ref.read(analysisCreateViewModelProvider.notifier).clearError();
         });
       }
 
@@ -204,7 +204,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             Overlay.of(context),
             CustomSnackBar.success(message: next.successMessage!),
           );
-          ref.read(homeViewModelProvider.notifier).clearSuccess();
+          ref.read(analysisCreateViewModelProvider.notifier).clearSuccess();
         });
       }
     });
@@ -231,7 +231,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   TextFormField(
                     controller: _titleController,
                     onChanged: (v) =>
-                        ref.read(homeViewModelProvider.notifier).updateTitle(v),
+                        ref.read(analysisCreateViewModelProvider.notifier).updateTitle(v),
                     decoration: _inputDecoration(
                       hint: 'Ex: Talhão norte — parcela 3',
                       hasError: state.titleError,
@@ -359,7 +359,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                         if (id == null) return;
                         final crop = state.crops.firstWhere((c) => c.id == id);
                         ref
-                            .read(homeViewModelProvider.notifier)
+                            .read(analysisCreateViewModelProvider.notifier)
                             .selectCrop(crop);
                       },
                     ),
@@ -374,7 +374,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   TextFormField(
                     controller: _notesController,
                     onChanged: (v) => ref
-                        .read(homeViewModelProvider.notifier)
+                        .read(analysisCreateViewModelProvider.notifier)
                         .updateNotes(v.isEmpty ? null : v),
                     maxLines: 3,
                     decoration: _inputDecoration(
@@ -454,7 +454,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                       onPressed: state.isSubmitting
                           ? null
                           : () => ref
-                                .read(homeViewModelProvider.notifier)
+                                .read(analysisCreateViewModelProvider.notifier)
                                 .submit(),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.green,
@@ -587,7 +587,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             right: 4,
             child: GestureDetector(
               onTap: () =>
-                  ref.read(homeViewModelProvider.notifier).removeImage(index),
+                  ref.read(analysisCreateViewModelProvider.notifier).removeImage(index),
               child: Container(
                 width: 24,
                 height: 24,
@@ -608,7 +608,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             left: 4,
             child: GestureDetector(
               onTap: () =>
-                  ref.read(homeViewModelProvider.notifier).cropImage(index),
+                  ref.read(analysisCreateViewModelProvider.notifier).cropImage(index),
               child: Container(
                 width: 24,
                 height: 24,

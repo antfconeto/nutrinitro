@@ -4,7 +4,7 @@ import 'package:equatable/equatable.dart';
 import 'package:nutrinitro/src/data/models/crop_model.dart';
 import 'package:nutrinitro/src/data/services/analysis/analysis_registry.dart';
 
-class HomeState extends Equatable {
+class AnalysisCreateState extends Equatable {
   final bool isLoading;
   final bool isSubmitting;
   final bool submitted;
@@ -16,12 +16,11 @@ class HomeState extends Equatable {
   final List<CropModel> crops;
   final CropModel? selectedCrop;
   final List<File>? images;
-  /// Nome original da galeria (paralelo a [images], mesmo índice).
   final List<String?>? imageSourceNames;
   final List<RegisteredAnalysis> analyses;
   final RegisteredAnalysis? selectedAnalysis;
 
-  const HomeState({
+  const AnalysisCreateState({
     this.isLoading = false,
     this.isSubmitting = false,
     this.submitted = false,
@@ -60,7 +59,7 @@ class HomeState extends Equatable {
     return names[index];
   }
 
-  HomeState copyWith({
+  AnalysisCreateState copyWith({
     bool? isLoading,
     bool? isSubmitting,
     bool? submitted,
@@ -82,7 +81,7 @@ class HomeState extends Equatable {
     bool clearSelectedCrop = false,
     bool clearSelectedAnalysis = false,
   }) {
-    return HomeState(
+    return AnalysisCreateState(
       isLoading: isLoading ?? this.isLoading,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       submitted: submitted ?? this.submitted,

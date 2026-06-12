@@ -9,17 +9,17 @@ import 'package:nutrinitro/src/data/models/local_image_pick.dart';
 import 'package:nutrinitro/src/data/repositories/repositories_provider.dart';
 import 'package:nutrinitro/src/data/services/services_provider.dart';
 import 'package:nutrinitro/src/data/services/analysis/analysis_registry.dart';
-import 'package:nutrinitro/src/ui/tabs/screens/analysis/create/home_state.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/create/analysis_create_state.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-part 'home_view_model.g.dart';
+part 'analysis_create_view_model.g.dart';
 
 @Riverpod(keepAlive: true)
-class HomeViewModel extends _$HomeViewModel {
+class AnalysisCreateViewModel extends _$AnalysisCreateViewModel {
   @override
-  HomeState build() {
+  AnalysisCreateState build() {
     Future.microtask(() => fetchCrops());
-    return HomeState(
+    return AnalysisCreateState(
       analyses: AnalysisRegistry.all,
     );
   }
