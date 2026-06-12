@@ -5,8 +5,8 @@ import 'package:nutrinitro/src/core/themes/app_colors.dart';
 import 'package:nutrinitro/src/core/themes/app_text.dart';
 import 'package:nutrinitro/src/data/models/crop_model.dart';
 import 'dart:io';
-import 'package:nutrinitro/src/ui/tabs/screens/home/home_state.dart';
-import 'package:nutrinitro/src/ui/tabs/screens/home/home_view_model.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/create/home_state.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/create/home_view_model.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 

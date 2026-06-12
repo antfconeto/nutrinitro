@@ -5,7 +5,7 @@ import 'package:nutrinitro/src/core/interfaces/api_result_interface.dart';
 import 'package:nutrinitro/src/data/repositories/repositories_provider.dart';
 import 'package:nutrinitro/src/data/services/analysis/core/analysis_progress.dart';
 import 'package:nutrinitro/src/data/services/services_provider.dart';
-import 'package:nutrinitro/src/ui/analysis_details/analysis_details_state.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/details/analysis_details_state.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'analysis_details_view_model.g.dart';

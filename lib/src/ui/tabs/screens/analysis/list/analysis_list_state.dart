@@ -1,14 +1,14 @@
 import 'package:equatable/equatable.dart';
 import 'package:nutrinitro/src/data/models/analysis_model.dart';
 
-class HistoryState extends Equatable {
+class AnalysesListState extends Equatable {
   final bool isLoading;
   final bool isLoadingMore;
   final bool hasMore;
   final String? errorMessage;
   final List<AnalysisModel> analyses;
 
-  const HistoryState({
+  const AnalysesListState({
     this.isLoading = false,
     this.isLoadingMore = false,
     this.hasMore = true,
@@ -16,7 +16,7 @@ class HistoryState extends Equatable {
     this.analyses = const [],
   });
 
-  HistoryState copyWith({
+  AnalysesListState copyWith({
     bool? isLoading,
     bool? isLoadingMore,
     bool? hasMore,
@@ -24,7 +24,7 @@ class HistoryState extends Equatable {
     List<AnalysisModel>? analyses,
     bool clearError = false,
   }) {
-    return HistoryState(
+    return AnalysesListState(
       isLoading: isLoading ?? this.isLoading,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       hasMore: hasMore ?? this.hasMore,

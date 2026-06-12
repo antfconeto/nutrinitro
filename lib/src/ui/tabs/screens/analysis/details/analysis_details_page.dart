@@ -14,13 +14,13 @@ import 'package:nutrinitro/src/core/utils/debug_analysis_exporter.dart';
 import 'package:nutrinitro/src/core/utils/pdf_exporter.dart';
 import 'package:nutrinitro/src/data/models/analysis_model.dart';
 import 'package:nutrinitro/src/data/models/image_model.dart';
-import 'package:nutrinitro/src/ui/analysis_details/analysis_details_state.dart';
-import 'package:nutrinitro/src/ui/analysis_details/analysis_details_view_model.dart';
-import 'package:nutrinitro/src/ui/analysis_details/utils/image_angle_extractor.dart';
-import 'package:nutrinitro/src/ui/analysis_details/widgets/analysis_cancel_dialog.dart';
-import 'package:nutrinitro/src/ui/analysis_details/widgets/analysis_delete_dialog.dart';
-import 'package:nutrinitro/src/ui/analysis_details/widgets/analysis_details_body.dart';
-import 'package:nutrinitro/src/ui/analysis_details/widgets/analysis_selection_bottom_sheet.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/details/analysis_details_state.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/details/analysis_details_view_model.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/details/utils/image_angle_extractor.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/details/widgets/analysis_cancel_dialog.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/details/widgets/analysis_delete_dialog.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/details/widgets/analysis_details_body.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/details/widgets/analysis_selection_bottom_sheet.dart';
 
 class AnalysisDetailsPage extends ConsumerStatefulWidget {
   final int analysisId;

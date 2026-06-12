@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:nutrinitro/src/core/themes/app_colors.dart';
 import 'package:nutrinitro/src/core/themes/app_text.dart';
 import 'package:nutrinitro/src/data/services/analysis/core/analysis_progress.dart';
-import 'package:nutrinitro/src/ui/analysis_details/analysis_stage_panel.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/details/analysis_stage_panel.dart';
 
 class AnalysisPipelineViewer extends StatefulWidget {
   final AnalysisPipelineSnapshot? snapshot;

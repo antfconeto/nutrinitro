@@ -6,19 +6,19 @@ import 'package:nutrinitro/src/core/constants/analysis_status.dart';
 import 'package:nutrinitro/src/core/themes/app_colors.dart';
 import 'package:nutrinitro/src/core/themes/app_text.dart';
 import 'package:nutrinitro/src/data/models/analysis_model.dart';
-import 'package:nutrinitro/src/ui/tabs/screens/history/history_state.dart';
-import 'package:nutrinitro/src/ui/tabs/screens/history/history_view_model.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/list/analysis_list_state.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/list/analysis_list_view_model.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
-class HistoryPage extends ConsumerStatefulWidget {
-  const HistoryPage({super.key});
+class AnalysesListPage extends ConsumerStatefulWidget {
+  const AnalysesListPage({super.key});
 
   @override
-  ConsumerState<HistoryPage> createState() => _HistoryPageState();
+  ConsumerState<AnalysesListPage> createState() => _AnalysesListPageState();
 }
 
-class _HistoryPageState extends ConsumerState<HistoryPage> {
+class _AnalysesListPageState extends ConsumerState<AnalysesListPage> {
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -39,7 +39,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
     final max = _scrollController.position.maxScrollExtent;
     final current = _scrollController.offset;
     if (current >= max * 0.9) {
-      ref.read(historyViewModelProvider.notifier).loadMore();
+      ref.read(analysesListViewModelProvider.notifier).loadMore();
     }
   }
 
@@ -124,7 +124,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
     if (confirmed != true || !context.mounted) return;
 
     final success = await ref
-        .read(historyViewModelProvider.notifier)
+        .read(analysesListViewModelProvider.notifier)
         .delete(analysis.id!);
 
     if (!context.mounted) return;
@@ -139,7 +139,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(historyViewModelProvider);
+    final state = ref.watch(analysesListViewModelProvider);
 
     return Scaffold(
       backgroundColor: AppColors.grayLight,
@@ -153,7 +153,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
         child: RefreshIndicator(
           color: AppColors.green,
           onRefresh: () => ref
-              .read(historyViewModelProvider.notifier)
+              .read(analysesListViewModelProvider.notifier)
               .fetchAnalyses(refresh: true),
           child: _buildBody(context, state),
         ),
@@ -161,7 +161,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
     );
   }
 
-  Widget _buildBody(BuildContext context, HistoryState state) {
+  Widget _buildBody(BuildContext context, AnalysesListState state) {
     if (state.isLoading && state.analyses.isEmpty) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.green),

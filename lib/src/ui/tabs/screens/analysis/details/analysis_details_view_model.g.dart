@@ -42,7 +42,7 @@ final class AnalysisDetailsViewModelProvider
 }
 
 String _$analysisDetailsViewModelHash() =>
-    r'f866921d33dab44165e143f269c4eaac58059a6b';
+    r'85352d24413a7bb3501b23993ba9210b3500d3d5';
 
 abstract class _$AnalysisDetailsViewModel
     extends $Notifier<AnalysisDetailsState> {

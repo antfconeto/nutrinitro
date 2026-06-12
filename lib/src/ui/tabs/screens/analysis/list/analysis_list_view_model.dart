@@ -2,20 +2,20 @@ import 'package:nutrinitro/src/core/constants/repository_includes.dart';
 import 'package:nutrinitro/src/core/interfaces/api_result_interface.dart';
 import 'package:nutrinitro/src/data/repositories/repositories_provider.dart';
 import 'package:nutrinitro/src/data/services/services_provider.dart';
-import 'package:nutrinitro/src/ui/tabs/screens/history/history_state.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/list/analysis_list_state.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-part 'history_view_model.g.dart';
+part 'analysis_list_view_model.g.dart';
 
 @riverpod
-class HistoryViewModel extends _$HistoryViewModel {
+class AnalysesListViewModel extends _$AnalysesListViewModel {
   static const _perPage = 10;
   int _offset = 0;
 
   @override
-  HistoryState build() {
+  AnalysesListState build() {
     Future.microtask(() => fetchAnalyses(refresh: true));
-    return const HistoryState();
+    return const AnalysesListState();
   }
 
   Future<void> fetchAnalyses({bool refresh = false}) async {

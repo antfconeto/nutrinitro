@@ -7,7 +7,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:nutrinitro/src/core/themes/app_colors.dart';
 import 'package:nutrinitro/src/core/themes/app_text.dart';
 import 'package:nutrinitro/src/data/models/analysis_model.dart';
-import 'package:nutrinitro/src/ui/analysis_details/utils/image_angle_extractor.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/details/utils/image_angle_extractor.dart';
 
 class AnalysisMapCard extends StatefulWidget {
   final AnalysisModel analysis;

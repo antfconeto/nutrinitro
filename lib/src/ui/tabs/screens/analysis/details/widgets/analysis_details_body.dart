@@ -4,13 +4,13 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:nutrinitro/src/core/themes/app_colors.dart';
 import 'package:nutrinitro/src/core/themes/app_text.dart';
 import 'package:nutrinitro/src/data/models/image_model.dart';
-import 'package:nutrinitro/src/ui/analysis_details/analysis_details_state.dart';
-import 'package:nutrinitro/src/ui/analysis_details/analysis_details_view_model.dart';
-import 'package:nutrinitro/src/ui/analysis_details/utils/image_angle_extractor.dart';
-import 'package:nutrinitro/src/ui/analysis_details/widgets/analysis_header_card.dart';
-import 'package:nutrinitro/src/ui/analysis_details/widgets/analysis_image_gallery_section.dart';
-import 'package:nutrinitro/src/ui/analysis_details/widgets/analysis_map_card.dart';
-import 'package:nutrinitro/src/ui/analysis_details/widgets/analysis_notes_card.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/details/analysis_details_state.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/details/analysis_details_view_model.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/details/utils/image_angle_extractor.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/details/widgets/analysis_header_card.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/details/widgets/analysis_image_gallery_section.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/details/widgets/analysis_map_card.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/details/widgets/analysis_notes_card.dart';
 
 class AnalysisDetailsBody extends ConsumerWidget {
   final AnalysisDetailsState state;

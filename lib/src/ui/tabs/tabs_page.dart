@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nutrinitro/src/core/themes/app_colors.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/dashboard/dashboard_page.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/drone/drone_page.dart';
-import 'package:nutrinitro/src/ui/tabs/screens/history/history_page.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/list/analysis_list_page.dart';
 
 class TabsPage extends ConsumerStatefulWidget {
   final int initialIndex;
@@ -26,7 +26,7 @@ class _TabsPageState extends ConsumerState<TabsPage> {
 
   final List<Widget> _pages = <Widget>[
     const DashboardPage(),
-    const HistoryPage(),
+    const AnalysesListPage(),
     const DronePage(),
   ];
 

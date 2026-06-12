@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nutrinitro/src/core/config/env.dart';
 import 'package:nutrinitro/src/core/database/database_client.dart';
 import 'package:nutrinitro/src/core/themes/app_theme.dart';
-import 'package:nutrinitro/src/ui/analysis_details/analysis_details_page.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/details/analysis_details_page.dart';
 import 'package:nutrinitro/src/ui/splash/splash_page.dart';
 import 'package:nutrinitro/src/ui/tabs/tabs_page.dart';
 

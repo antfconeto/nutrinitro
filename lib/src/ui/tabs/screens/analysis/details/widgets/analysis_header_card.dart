@@ -4,11 +4,11 @@ import 'package:intl/intl.dart';
 import 'package:nutrinitro/src/core/themes/app_colors.dart';
 import 'package:nutrinitro/src/core/themes/app_text.dart';
 import 'package:nutrinitro/src/data/models/analysis_model.dart';
-import 'package:nutrinitro/src/ui/analysis_details/analysis_details_state.dart';
-import 'package:nutrinitro/src/ui/analysis_details/analysis_details_view_model.dart';
-import 'package:nutrinitro/src/ui/analysis_details/analysis_pipeline_viewer.dart';
-import 'package:nutrinitro/src/ui/analysis_details/widgets/analysis_live_result_summary.dart';
-import 'package:nutrinitro/src/ui/analysis_details/widgets/analysis_status_badge.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/details/analysis_details_state.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/details/analysis_details_view_model.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/details/analysis_pipeline_viewer.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/details/widgets/analysis_live_result_summary.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/details/widgets/analysis_status_badge.dart';
 
 class AnalysisHeaderCard extends ConsumerWidget {
   final AnalysisModel analysis;

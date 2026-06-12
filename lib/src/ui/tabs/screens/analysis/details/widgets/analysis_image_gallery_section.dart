@@ -6,8 +6,8 @@ import 'package:nutrinitro/src/core/themes/app_colors.dart';
 import 'package:nutrinitro/src/core/themes/app_text.dart';
 import 'package:nutrinitro/src/data/models/analysis_model.dart';
 import 'package:nutrinitro/src/data/models/image_model.dart';
-import 'package:nutrinitro/src/ui/analysis_details/widgets/analysis_image_results_panel.dart';
-import 'package:nutrinitro/src/ui/analysis_details/widgets/full_screen_image_page.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/details/widgets/analysis_image_results_panel.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/details/widgets/full_screen_image_page.dart';
 
 class AnalysisImageGallerySection extends StatefulWidget {
   final AnalysisModel analysis;
