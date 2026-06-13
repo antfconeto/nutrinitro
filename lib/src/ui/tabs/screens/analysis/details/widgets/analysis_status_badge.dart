@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:nutrinitro/src/core/constants/analysis_status.dart';
+import 'package:nutrinitro/src/core/const/analysis_status.dart';
 import 'package:nutrinitro/src/core/themes/app_colors.dart';
 
 class AnalysisStatusBadge extends StatelessWidget {

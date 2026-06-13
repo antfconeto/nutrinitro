@@ -1,7 +1,7 @@
 import 'dart:isolate';
 import 'dart:typed_data';
 
-import 'package:nutrinitro/src/data/models/recipe/analysis_recipe.dart';
+import 'package:nutrinitro/src/data/models/analysis/analysis_recipe.dart';
 
 /// Atualização de progresso enviada do isolate para a UI durante a análise.
 class AnalysisStageUpdate {

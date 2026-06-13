@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nutrinitro/src/data/models/recipe/analysis_recipe.dart';
+import 'package:nutrinitro/src/data/models/analysis/analysis_recipe.dart';
 import 'package:nutrinitro/src/data/services/analysis/recipe/pipeline/pipeline_context.dart';
 import 'package:nutrinitro/src/data/services/analysis/recipe/pipeline/recipe_result_builder.dart';
 

@@ -10,8 +10,8 @@ import 'package:printing/printing.dart';
 import 'package:image/image.dart' as img;
 import 'package:nutrinitro/src/core/themes/app_colors.dart';
 import 'package:nutrinitro/src/core/themes/app_text.dart';
-import 'package:nutrinitro/src/data/models/analysis_model.dart';
-import 'package:nutrinitro/src/data/models/image_model.dart';
+import 'package:nutrinitro/src/data/models/analysis/analysis_model.dart';
+import 'package:nutrinitro/src/data/models/analysis/image_model.dart';
 
 class PdfExporter {
   static Future<void> exportAnalysis(AnalysisModel analysis, BuildContext context) async {

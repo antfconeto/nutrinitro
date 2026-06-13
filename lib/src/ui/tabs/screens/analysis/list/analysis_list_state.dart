@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
-import 'package:nutrinitro/src/core/constants/analysis_status.dart';
-import 'package:nutrinitro/src/data/models/analysis_model.dart';
+import 'package:nutrinitro/src/core/const/analysis_status.dart';
+import 'package:nutrinitro/src/data/models/analysis/analysis_model.dart';
 import 'package:nutrinitro/src/data/models/crop_model.dart';
 
 enum AnalysisSortOrder {

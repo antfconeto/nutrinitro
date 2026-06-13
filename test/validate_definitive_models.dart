@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:nutrinitro/src/data/models/recipe/analysis_recipe.dart';
+import 'package:nutrinitro/src/data/models/analysis/analysis_recipe.dart';
 import 'package:nutrinitro/src/data/services/analysis/recipe/prediction/model_runners.dart';
 
 void main() async {

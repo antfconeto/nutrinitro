@@ -1,9 +1,9 @@
-import 'package:nutrinitro/src/core/constants/analysis_status.dart';
-import 'package:nutrinitro/src/core/constants/repository_includes.dart';
+import 'package:nutrinitro/src/core/const/analysis_status.dart';
+import 'package:nutrinitro/src/core/const/repository_includes.dart';
 import 'package:nutrinitro/src/core/interfaces/api_result_interface.dart';
-import 'package:nutrinitro/src/data/models/analysis_model.dart';
+import 'package:nutrinitro/src/data/models/analysis/analysis_model.dart';
 import 'package:nutrinitro/src/data/models/crop_model.dart';
-import 'package:nutrinitro/src/data/models/image_model.dart';
+import 'package:nutrinitro/src/data/models/analysis/image_model.dart';
 import 'package:nutrinitro/src/data/repositories/crop/crop_repository.dart';
 import 'package:nutrinitro/src/data/repositories/image/image_repository.dart';
 import 'package:sqflite/sqflite.dart';

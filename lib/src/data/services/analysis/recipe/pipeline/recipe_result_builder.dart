@@ -1,4 +1,4 @@
-import 'package:nutrinitro/src/data/models/recipe/analysis_recipe.dart';
+import 'package:nutrinitro/src/data/models/analysis/analysis_recipe.dart';
 import 'package:nutrinitro/src/data/services/analysis/recipe/pipeline/pipeline_context.dart';
 
 /// Monta o JSON de resultado a partir de [recipe.outputs] e [predictionValues].

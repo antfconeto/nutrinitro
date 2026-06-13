@@ -3,9 +3,9 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 
-import 'package:nutrinitro/src/core/constants/analysis_status.dart';
+import 'package:nutrinitro/src/core/const/analysis_status.dart';
 import 'package:nutrinitro/src/data/models/crop_model.dart';
-import 'package:nutrinitro/src/data/models/image_model.dart';
+import 'package:nutrinitro/src/data/models/analysis/image_model.dart';
 
 class AnalysisModel {
   final int? id;

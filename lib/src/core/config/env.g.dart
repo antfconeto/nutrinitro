@@ -11,4 +11,6 @@ part of 'env.dart';
 // generated_from: .env
 final class _Env {
   static const bool debug = true;
+
+  static const bool useMockDrone = true;
 }
