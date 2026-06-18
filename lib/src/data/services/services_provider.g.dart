@@ -221,3 +221,44 @@ final class StorageServiceProvider
 }
 
 String _$storageServiceHash() => r'a6d23bc030486b6d1106efa40d3a7733b6bf906f';
+
+@ProviderFor(droneService)
+const droneServiceProvider = DroneServiceProvider._();
+
+final class DroneServiceProvider
+    extends $FunctionalProvider<IDroneService, IDroneService, IDroneService>
+    with $Provider<IDroneService> {
+  const DroneServiceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'droneServiceProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$droneServiceHash();
+
+  @$internal
+  @override
+  $ProviderElement<IDroneService> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  IDroneService create(Ref ref) {
+    return droneService(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(IDroneService value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<IDroneService>(value),
+    );
+  }
+}
+
+String _$droneServiceHash() => r'81ac57063e3df37282c6190b44ec8380572b043c';
