@@ -170,3 +170,128 @@ final class AnalysisRecipeRepositoryProvider
 
 String _$analysisRecipeRepositoryHash() =>
     r'01ca066bc2d2f46b169fbd18eb318ce1b65c0516';
+
+@ProviderFor(waypointRepository)
+const waypointRepositoryProvider = WaypointRepositoryProvider._();
+
+final class WaypointRepositoryProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<WaypointRepository>,
+          WaypointRepository,
+          FutureOr<WaypointRepository>
+        >
+    with
+        $FutureModifier<WaypointRepository>,
+        $FutureProvider<WaypointRepository> {
+  const WaypointRepositoryProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'waypointRepositoryProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$waypointRepositoryHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<WaypointRepository> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<WaypointRepository> create(Ref ref) {
+    return waypointRepository(ref);
+  }
+}
+
+String _$waypointRepositoryHash() =>
+    r'b262926765c1aa4e08fc81131b4f765a92f6694c';
+
+@ProviderFor(missionRepository)
+const missionRepositoryProvider = MissionRepositoryProvider._();
+
+final class MissionRepositoryProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<MissionRepository>,
+          MissionRepository,
+          FutureOr<MissionRepository>
+        >
+    with
+        $FutureModifier<MissionRepository>,
+        $FutureProvider<MissionRepository> {
+  const MissionRepositoryProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'missionRepositoryProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$missionRepositoryHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<MissionRepository> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<MissionRepository> create(Ref ref) {
+    return missionRepository(ref);
+  }
+}
+
+String _$missionRepositoryHash() => r'8b3eb86f8fd4afb4234504b0e0a4f3d7530aede9';
+
+@ProviderFor(droneImageRepository)
+const droneImageRepositoryProvider = DroneImageRepositoryProvider._();
+
+final class DroneImageRepositoryProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<DroneImageRepository>,
+          DroneImageRepository,
+          FutureOr<DroneImageRepository>
+        >
+    with
+        $FutureModifier<DroneImageRepository>,
+        $FutureProvider<DroneImageRepository> {
+  const DroneImageRepositoryProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'droneImageRepositoryProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$droneImageRepositoryHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<DroneImageRepository> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<DroneImageRepository> create(Ref ref) {
+    return droneImageRepository(ref);
+  }
+}
+
+String _$droneImageRepositoryHash() =>
+    r'3d0b923dd9f361c7275be6c5616b64fb41ec29ed';
