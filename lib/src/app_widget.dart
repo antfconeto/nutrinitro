@@ -7,6 +7,8 @@ import 'package:nutrinitro/src/ui/splash/splash_page.dart';
 import 'package:nutrinitro/src/ui/tabs/tabs_page.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/analysis/details/analysis_details_page.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/analysis/create/analysis_create_page.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/drone/missions/create/mission_create_page.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/drone/missions/details/mission_details_page.dart';
 
 final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -33,10 +35,18 @@ class AppWidget extends ConsumerWidget {
           return TabsPage(initialIndex: initialIndex);
         },
 
+        // Analysis
         '/analysis/create': (context) => const AnalysisCreatePage(),
         '/analysis/details': (context) {
           final analysisId = ModalRoute.of(context)!.settings.arguments as int;
           return AnalysisDetailsPage(analysisId: analysisId);
+        },
+
+        // Drone — Missions
+        '/drone/mission/create': (context) => const MissionCreatePage(),
+        '/drone/mission/details': (context) {
+          final missionId = ModalRoute.of(context)!.settings.arguments as int;
+          return MissionDetailsPage(missionId: missionId);
         },
       },
     );
