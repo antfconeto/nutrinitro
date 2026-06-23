@@ -1,6 +1,7 @@
 import 'package:latlong2/latlong.dart';
 import 'package:nutrinitro/src/core/interfaces/api_result_interface.dart';
 import 'package:nutrinitro/src/data/models/drone/drone_waypoint_model.dart';
+import 'package:nutrinitro/src/data/models/drone/mission_model.dart';
 import 'package:nutrinitro/src/data/repositories/repositories_provider.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/drone/missions/create/mission_create_state.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -11,6 +12,17 @@ part 'mission_create_view_model.g.dart';
 class MissionCreateViewModel extends _$MissionCreateViewModel {
   @override
   MissionCreateState build() => const MissionCreateState();
+
+  // ─── Init from existing mission (edit mode) ────────────────────────────────
+
+  void initFromMission(MissionModel mission) {
+    state = state.copyWith(
+      missionId: mission.id,
+      title: mission.title,
+      notes: mission.notes,
+      waypoints: mission.waypoints,
+    );
+  }
 
   // ─── Form ──────────────────────────────────────────────────────────────────
 
@@ -78,11 +90,20 @@ class MissionCreateViewModel extends _$MissionCreateViewModel {
 
     try {
       final repo = await ref.read(missionRepositoryProvider.future);
-      final result = await repo.create(
-        title: state.title,
-        notes: state.notes,
-        waypoints: state.waypoints,
-      );
+      final editing = state.missionId != null;
+
+      final result = editing
+          ? await repo.updateWithWaypoints(
+              missionId: state.missionId!,
+              title: state.title,
+              notes: state.notes,
+              waypoints: state.waypoints,
+            )
+          : await repo.create(
+              title: state.title,
+              notes: state.notes,
+              waypoints: state.waypoints,
+            );
 
       switch (result) {
         case Failure(:final error):
@@ -93,7 +114,9 @@ class MissionCreateViewModel extends _$MissionCreateViewModel {
         case Success():
           state = state.copyWith(
             isSubmitting: false,
-            successMessage: 'Missão criada com sucesso!',
+            successMessage: editing
+                ? 'Missão atualizada com sucesso!'
+                : 'Missão criada com sucesso!',
           );
       }
     } catch (e) {

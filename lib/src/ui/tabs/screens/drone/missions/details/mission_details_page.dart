@@ -32,6 +32,15 @@ class _MissionDetailsPageState extends ConsumerState<MissionDetailsPage> {
     );
   }
 
+  Future<void> _navigateToEdit(BuildContext context, MissionModel mission) async {
+    await Navigator.of(context).pushNamed(
+      '/drone/mission/create',
+      arguments: mission,
+    );
+    if (!mounted) return;
+    ref.read(missionDetailsViewModelProvider.notifier).load(widget.missionId);
+  }
+
   Future<void> _confirmStart(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -140,6 +149,16 @@ class _MissionDetailsPageState extends ConsumerState<MissionDetailsPage> {
         backgroundColor: AppColors.green,
         foregroundColor: AppColors.white,
         elevation: 0,
+        actions: [
+          if (state.mission != null &&
+              (state.mission!.status == MissionStatus.planned ||
+                  state.mission!.status == MissionStatus.aborted))
+            IconButton(
+              icon: const Icon(Icons.edit_outlined),
+              tooltip: 'Editar missão',
+              onPressed: () => _navigateToEdit(context, state.mission!),
+            ),
+        ],
       ),
       body: state.isLoading
           ? const Center(

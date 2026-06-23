@@ -84,6 +84,32 @@ class MissionRepository {
     }
   }
 
+  Future<Result<MissionModel>> updateWithWaypoints({
+    required int missionId,
+    required String title,
+    String? notes,
+    required List<DroneWaypointModel> waypoints,
+  }) async {
+    try {
+      await _db.update(
+        'missions',
+        {'title': title, 'notes': notes},
+        where: 'id = ?',
+        whereArgs: [missionId],
+      );
+      await _waypointRepository.deleteBy('mission_id', missionId);
+      for (final wp in waypoints) {
+        await _db.insert(
+          'waypoints',
+          wp.copyWith(missionId: missionId).toMap()..remove('id'),
+        );
+      }
+      return find(missionId);
+    } catch (e) {
+      return Failure(Exception('Error updating mission: $e'));
+    }
+  }
+
   // ─── Delete ────────────────────────────────────────────────────────────────
 
   Future<Result<Nil>> delete(int missionId) async {

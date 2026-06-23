@@ -9,13 +9,16 @@ import 'package:latlong2/latlong.dart';
 import 'package:nutrinitro/src/core/themes/app_colors.dart';
 import 'package:nutrinitro/src/core/themes/app_text.dart';
 import 'package:nutrinitro/src/data/models/drone/drone_waypoint_model.dart';
+import 'package:nutrinitro/src/data/models/drone/mission_model.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/drone/missions/create/mission_create_state.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/drone/missions/create/mission_create_view_model.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
 class MissionCreatePage extends ConsumerStatefulWidget {
-  const MissionCreatePage({super.key});
+  final MissionModel? initialMission;
+
+  const MissionCreatePage({super.key, this.initialMission});
 
   @override
   ConsumerState<MissionCreatePage> createState() => _MissionCreatePageState();
@@ -33,9 +36,38 @@ class _MissionCreatePageState extends ConsumerState<MissionCreatePage> {
   @override
   void initState() {
     super.initState();
-    _titleController = TextEditingController();
-    _notesController = TextEditingController();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _moveToUserLocation());
+    final mission = widget.initialMission;
+    _titleController = TextEditingController(text: mission?.title ?? '');
+    _notesController = TextEditingController(text: mission?.notes ?? '');
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mission != null) {
+        ref
+            .read(missionCreateViewModelProvider.notifier)
+            .initFromMission(mission);
+        _fitToWaypoints(mission.waypoints);
+      } else {
+        _moveToUserLocation();
+      }
+    });
+  }
+
+  void _fitToWaypoints(List<DroneWaypointModel> waypoints) {
+    if (waypoints.isEmpty) {
+      _moveToUserLocation();
+      return;
+    }
+    final points =
+        waypoints.map((w) => LatLng(w.latitude, w.longitude)).toList();
+    if (points.length == 1) {
+      _mapController.move(points.first, 15);
+    } else {
+      _mapController.fitCamera(
+        CameraFit.bounds(
+          bounds: LatLngBounds.fromPoints(points),
+          padding: const EdgeInsets.all(50),
+        ),
+      );
+    }
   }
 
   Future<void> _moveToUserLocation() async {
@@ -332,7 +364,9 @@ class _MissionCreatePageState extends ConsumerState<MissionCreatePage> {
     return Scaffold(
       backgroundColor: AppColors.grayLight,
       appBar: AppBar(
-        title: const Text('Nova Missão'),
+        title: Text(
+          widget.initialMission != null ? 'Editar Missão' : 'Nova Missão',
+        ),
         backgroundColor: AppColors.green,
         foregroundColor: AppColors.white,
         elevation: 0,
@@ -735,9 +769,11 @@ class _MissionCreatePageState extends ConsumerState<MissionCreatePage> {
                           strokeWidth: 2,
                         ),
                       )
-                    : const Text(
-                        'Criar Missão',
-                        style: TextStyle(
+                    : Text(
+                        widget.initialMission != null
+                            ? 'Salvar alterações'
+                            : 'Criar Missão',
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                           color: AppColors.white,

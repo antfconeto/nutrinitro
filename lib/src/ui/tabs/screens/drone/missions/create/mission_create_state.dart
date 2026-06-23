@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:nutrinitro/src/data/models/drone/drone_waypoint_model.dart';
 
 class MissionCreateState extends Equatable {
+  final int? missionId;
   final bool isSubmitting;
   final bool submitted;
   final String title;
@@ -11,6 +12,7 @@ class MissionCreateState extends Equatable {
   final String? successMessage;
 
   const MissionCreateState({
+    this.missionId,
     this.isSubmitting = false,
     this.submitted = false,
     this.title = '',
@@ -25,6 +27,7 @@ class MissionCreateState extends Equatable {
   bool get waypointsError => submitted && waypoints.length < 2;
 
   MissionCreateState copyWith({
+    int? missionId,
     bool? isSubmitting,
     bool? submitted,
     String? title,
@@ -37,6 +40,7 @@ class MissionCreateState extends Equatable {
     bool clearNotes = false,
   }) {
     return MissionCreateState(
+      missionId: missionId ?? this.missionId,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       submitted: submitted ?? this.submitted,
       title: title ?? this.title,
@@ -51,6 +55,7 @@ class MissionCreateState extends Equatable {
 
   @override
   List<Object?> get props => [
+    missionId,
     isSubmitting,
     submitted,
     title,

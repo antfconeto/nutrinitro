@@ -7,6 +7,7 @@ import 'package:nutrinitro/src/ui/splash/splash_page.dart';
 import 'package:nutrinitro/src/ui/tabs/tabs_page.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/analysis/details/analysis_details_page.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/analysis/create/analysis_create_page.dart';
+import 'package:nutrinitro/src/data/models/drone/mission_model.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/drone/missions/create/mission_create_page.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/drone/missions/details/mission_details_page.dart';
 
@@ -43,7 +44,11 @@ class AppWidget extends ConsumerWidget {
         },
 
         // Drone — Missions
-        '/drone/mission/create': (context) => const MissionCreatePage(),
+        '/drone/mission/create': (context) {
+          final mission =
+              ModalRoute.of(context)?.settings.arguments as MissionModel?;
+          return MissionCreatePage(initialMission: mission);
+        },
         '/drone/mission/details': (context) {
           final missionId = ModalRoute.of(context)!.settings.arguments as int;
           return MissionDetailsPage(missionId: missionId);
