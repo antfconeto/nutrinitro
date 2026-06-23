@@ -29,9 +29,12 @@ class _MissionCreatePageState extends ConsumerState<MissionCreatePage> {
   late final TextEditingController _notesController;
   final MapController _mapController = MapController();
 
+  final GlobalKey _mapContainerKey = GlobalKey();
+
   LatLng? _userLatLng;
   bool _locationIsApprox = false;
   bool _isSatellite = false;
+  int? _draggingIndex;
 
   @override
   void initState() {
@@ -489,6 +492,7 @@ class _MissionCreatePageState extends ConsumerState<MissionCreatePage> {
               ),
 
             Container(
+              key: _mapContainerKey,
               height: 340,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
@@ -508,14 +512,18 @@ class _MissionCreatePageState extends ConsumerState<MissionCreatePage> {
                       options: MapOptions(
                         initialCenter: const LatLng(-7.219120, -44.367890),
                         initialZoom: 15,
-                        interactionOptions: const InteractionOptions(
-                          flags: InteractiveFlag.drag |
-                              InteractiveFlag.pinchZoom |
-                              InteractiveFlag.doubleTapZoom,
+                        interactionOptions: InteractionOptions(
+                          flags: _draggingIndex != null
+                              ? InteractiveFlag.none
+                              : InteractiveFlag.drag |
+                                  InteractiveFlag.pinchZoom |
+                                  InteractiveFlag.doubleTapZoom,
                         ),
-                        onLongPress: (_, point) => ref
-                            .read(missionCreateViewModelProvider.notifier)
-                            .addWaypoint(point),
+                        onLongPress: _draggingIndex == null
+                            ? (_, point) => ref
+                                .read(missionCreateViewModelProvider.notifier)
+                                .addWaypoint(point)
+                            : null,
                       ),
                       children: [
                         TileLayer(
@@ -578,30 +586,113 @@ class _MissionCreatePageState extends ConsumerState<MissionCreatePage> {
                             ],
                           ),
                         ],
+                        // Midpoint insert dots
+                        if (waypoints.length >= 2 &&
+                            _draggingIndex == null)
+                          MarkerLayer(
+                            markers: List.generate(
+                              waypoints.length - 1,
+                              (i) {
+                                final a = waypoints[i];
+                                final b = waypoints[i + 1];
+                                final mid = LatLng(
+                                  (a.latitude + b.latitude) / 2,
+                                  (a.longitude + b.longitude) / 2,
+                                );
+                                return Marker(
+                                  point: mid,
+                                  width: 22,
+                                  height: 22,
+                                  child: GestureDetector(
+                                    onTap: () => ref
+                                        .read(
+                                          missionCreateViewModelProvider
+                                              .notifier,
+                                        )
+                                        .insertWaypoint(i, mid),
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: AppColors.white,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: AppColors.green,
+                                          width: 1.5,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black
+                                                .withValues(alpha: 0.15),
+                                            blurRadius: 2,
+                                          ),
+                                        ],
+                                      ),
+                                      child: const Icon(
+                                        Icons.add,
+                                        size: 13,
+                                        color: AppColors.green,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        // Waypoint markers (drag-aware)
                         MarkerLayer(
                           markers: waypoints.asMap().entries.map((e) {
                             final index = e.key;
                             final wp = e.value;
+                            final isDragging = _draggingIndex == index;
                             return Marker(
                               point: LatLng(wp.latitude, wp.longitude),
-                              width: 32,
-                              height: 32,
+                              width: isDragging ? 42 : 32,
+                              height: isDragging ? 42 : 32,
                               child: GestureDetector(
-                                onTap: () =>
-                                    _showWaypointSheet(context, index, wp),
+                                onTap: _draggingIndex == null
+                                    ? () => _showWaypointSheet(
+                                          context,
+                                          index,
+                                          wp,
+                                        )
+                                    : null,
+                                onLongPressStart: (_) =>
+                                    setState(() => _draggingIndex = index),
+                                onLongPressMoveUpdate: (details) {
+                                  if (_draggingIndex != index) return;
+                                  final box = _mapContainerKey.currentContext
+                                      ?.findRenderObject() as RenderBox?;
+                                  if (box == null) return;
+                                  final local = box.globalToLocal(
+                                    details.globalPosition,
+                                  );
+                                  final latLng = _mapController.camera
+                                      .offsetToCrs(local);
+                                  ref
+                                      .read(
+                                        missionCreateViewModelProvider.notifier,
+                                      )
+                                      .moveWaypoint(index, latLng);
+                                },
+                                onLongPressEnd: (_) =>
+                                    setState(() => _draggingIndex = null),
                                 child: Container(
                                   decoration: BoxDecoration(
-                                    color: AppColors.green,
+                                    color: isDragging
+                                        ? AppColors.greenDark
+                                        : AppColors.green,
                                     shape: BoxShape.circle,
                                     border: Border.all(
                                       color: AppColors.white,
-                                      width: 2,
+                                      width: isDragging ? 3 : 2,
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: AppColors.navy
-                                            .withValues(alpha: 0.2),
-                                        blurRadius: 4,
+                                        color: isDragging
+                                            ? AppColors.greenDark
+                                                .withValues(alpha: 0.45)
+                                            : AppColors.navy
+                                                .withValues(alpha: 0.2),
+                                        blurRadius: isDragging ? 10 : 4,
                                         offset: const Offset(0, 2),
                                       ),
                                     ],
@@ -609,9 +700,9 @@ class _MissionCreatePageState extends ConsumerState<MissionCreatePage> {
                                   child: Center(
                                     child: Text(
                                       '${index + 1}',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: AppColors.white,
-                                        fontSize: 11,
+                                        fontSize: isDragging ? 13 : 11,
                                         fontWeight: FontWeight.w700,
                                       ),
                                     ),

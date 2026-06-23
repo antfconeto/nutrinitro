@@ -57,6 +57,37 @@ class MissionCreateViewModel extends _$MissionCreateViewModel {
     state = state.copyWith(waypoints: list);
   }
 
+  void insertWaypoint(int afterIndex, LatLng position) {
+    final prev = state.waypoints[afterIndex];
+    final newWp = DroneWaypointModel(
+      missionId: 0,
+      latitude: position.latitude,
+      longitude: position.longitude,
+      altitude: prev.altitude,
+      speed: prev.speed,
+      heading: 0.0,
+      capturePhoto: prev.capturePhoto,
+      orderIndex: afterIndex + 1,
+    );
+    final list = List<DroneWaypointModel>.from(state.waypoints)
+      ..insert(afterIndex + 1, newWp);
+    final reordered = list
+        .asMap()
+        .entries
+        .map((e) => e.value.copyWith(orderIndex: e.key))
+        .toList();
+    state = state.copyWith(waypoints: reordered, clearError: true);
+  }
+
+  void moveWaypoint(int index, LatLng position) {
+    final list = List<DroneWaypointModel>.from(state.waypoints)
+      ..[index] = state.waypoints[index].copyWith(
+          latitude: position.latitude,
+          longitude: position.longitude,
+        );
+    state = state.copyWith(waypoints: list);
+  }
+
   void removeWaypoint(int index) {
     final list = List<DroneWaypointModel>.from(state.waypoints)
       ..removeAt(index);

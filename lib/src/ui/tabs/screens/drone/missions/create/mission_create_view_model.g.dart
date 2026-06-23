@@ -42,7 +42,7 @@ final class MissionCreateViewModelProvider
 }
 
 String _$missionCreateViewModelHash() =>
-    r'ce2efd17064cd05cf37204782858c2b9733f246f';
+    r'67aea45ca38125a6645d27f2359f621226c7a2ff';
 
 abstract class _$MissionCreateViewModel extends $Notifier<MissionCreateState> {
   MissionCreateState build();
