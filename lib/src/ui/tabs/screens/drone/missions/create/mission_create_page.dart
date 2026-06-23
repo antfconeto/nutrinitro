@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:nutrinitro/src/core/themes/app_colors.dart';
 import 'package:nutrinitro/src/core/themes/app_text.dart';
@@ -27,6 +28,27 @@ class _MissionCreatePageState extends ConsumerState<MissionCreatePage> {
     super.initState();
     _titleController = TextEditingController();
     _notesController = TextEditingController();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _moveToUserLocation());
+  }
+
+  Future<void> _moveToUserLocation() async {
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) return;
+
+    try {
+      final pos = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.medium,
+        ),
+      );
+      if (mounted) {
+        _mapController.move(LatLng(pos.latitude, pos.longitude), 15);
+      }
+    } catch (_) {}
   }
 
   @override
@@ -387,7 +409,7 @@ class _MissionCreatePageState extends ConsumerState<MissionCreatePage> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Toque no mapa para adicionar waypoints',
+              'Pressione e segure no mapa para adicionar waypoints',
               style: AppText.small.copyWith(color: AppColors.grayMedium),
             ),
             const SizedBox(height: 8),
@@ -414,75 +436,94 @@ class _MissionCreatePageState extends ConsumerState<MissionCreatePage> {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(13),
-                child: FlutterMap(
-                  mapController: _mapController,
-                  options: MapOptions(
-                    initialCenter: const LatLng(-7.219120, -44.367890),
-                    initialZoom: 15,
-                    onTap: (_, point) => ref
-                        .read(missionCreateViewModelProvider.notifier)
-                        .addWaypoint(point),
-                  ),
+                child: Stack(
                   children: [
-                    TileLayer(
-                      urlTemplate:
-                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'nutrinitro.com.nutrinitro',
-                    ),
-
-                    // Linha conectando waypoints
-                    if (points.length >= 2)
-                      PolylineLayer(
-                        polylines: [
-                          Polyline(
-                            points: points,
-                            strokeWidth: 2.5,
-                            color: AppColors.green.withOpacity(0.8),
-                          ),
-                        ],
+                    FlutterMap(
+                      mapController: _mapController,
+                      options: MapOptions(
+                        initialCenter: const LatLng(-7.219120, -44.367890),
+                        initialZoom: 15,
+                        interactionOptions: const InteractionOptions(
+                          flags: InteractiveFlag.drag |
+                              InteractiveFlag.pinchZoom |
+                              InteractiveFlag.doubleTapZoom,
+                        ),
+                        onLongPress: (_, point) => ref
+                            .read(missionCreateViewModelProvider.notifier)
+                            .addWaypoint(point),
                       ),
-
-                    // Marcadores dos waypoints
-                    MarkerLayer(
-                      markers: waypoints.asMap().entries.map((e) {
-                        final index = e.key;
-                        final wp = e.value;
-                        return Marker(
-                          point: LatLng(wp.latitude, wp.longitude),
-                          width: 32,
-                          height: 32,
-                          child: GestureDetector(
-                            onTap: () => _showWaypointSheet(context, index, wp),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: AppColors.green,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: AppColors.white,
-                                  width: 2,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.navy.withOpacity(0.2),
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
+                      children: [
+                        TileLayer(
+                          urlTemplate:
+                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          userAgentPackageName: 'nutrinitro.com.nutrinitro',
+                        ),
+                        if (points.length >= 2)
+                          PolylineLayer(
+                            polylines: [
+                              Polyline(
+                                points: points,
+                                strokeWidth: 2.5,
+                                color: AppColors.green.withValues(alpha: 0.8),
                               ),
-                              child: Center(
-                                child: Text(
-                                  '${index + 1}',
-                                  style: const TextStyle(
-                                    color: AppColors.white,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                            ),
+                            ],
                           ),
-                        );
-                      }).toList(),
+                        MarkerLayer(
+                          markers: waypoints.asMap().entries.map((e) {
+                            final index = e.key;
+                            final wp = e.value;
+                            return Marker(
+                              point: LatLng(wp.latitude, wp.longitude),
+                              width: 32,
+                              height: 32,
+                              child: GestureDetector(
+                                onTap: () =>
+                                    _showWaypointSheet(context, index, wp),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: AppColors.green,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: AppColors.white,
+                                      width: 2,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppColors.navy
+                                            .withValues(alpha: 0.2),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      '${index + 1}',
+                                      style: const TextStyle(
+                                        color: AppColors.white,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
+                    Positioned(
+                      bottom: 12,
+                      right: 12,
+                      child: FloatingActionButton.small(
+                        heroTag: 'mission_create_location',
+                        onPressed: _moveToUserLocation,
+                        backgroundColor: AppColors.white,
+                        foregroundColor: AppColors.green,
+                        elevation: 2,
+                        child: const Icon(Icons.my_location, size: 20),
+                      ),
                     ),
                   ],
                 ),

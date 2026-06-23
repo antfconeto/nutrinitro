@@ -276,6 +276,7 @@ class _AnalysisListPageState extends ConsumerState<AnalysisListPage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'analysis_list_fab',
         onPressed: () => Navigator.of(context).pushNamed('/analysis/create'),
         backgroundColor: AppColors.green,
         foregroundColor: AppColors.white,

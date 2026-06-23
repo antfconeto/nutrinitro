@@ -36,6 +36,7 @@ class DroneMissionsPage extends ConsumerWidget {
         child: _buildBody(context, ref, state),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'drone_missions_fab',
         onPressed: () async {
           await Navigator.of(context).pushNamed('/drone/mission/create');
           ref.read(droneMissionsViewModelProvider.notifier).fetchMissions();

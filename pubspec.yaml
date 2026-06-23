@@ -60,6 +60,7 @@ dependencies:
     printing: ^5.14.3
     path_provider: ^2.1.5
     opencv_dart: ^2.2.1+4
+    geolocator: ^13.0.2
 
 dev_dependencies:
     flutter_test:
