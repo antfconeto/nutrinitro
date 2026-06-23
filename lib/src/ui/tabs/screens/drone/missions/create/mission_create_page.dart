@@ -486,7 +486,7 @@ class _MissionCreatePageState extends ConsumerState<MissionCreatePage> {
                       children: [
                         TileLayer(
                           urlTemplate: _isSatellite
-                              ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+                              ? 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'
                               : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                           userAgentPackageName: 'nutrinitro.com.nutrinitro',
                         ),

@@ -42,7 +42,7 @@ final class DroneMediaViewModelProvider
 }
 
 String _$droneMediaViewModelHash() =>
-    r'83299f860fd1b5a92b971ab2fb8d2217829a212a';
+    r'dfc5ffbb065f87cd306e2ebb0343f6ae031a553a';
 
 abstract class _$DroneMediaViewModel extends $Notifier<DroneMediaState> {
   DroneMediaState build();

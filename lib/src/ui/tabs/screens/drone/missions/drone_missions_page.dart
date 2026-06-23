@@ -490,14 +490,14 @@ class _DroneMissionsPageState extends ConsumerState<DroneMissionsPage> {
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
       child: SizedBox(
-        height: 120,
+        height: 160,
         child: IgnorePointer(
           child: FlutterMap(
             options: options,
             children: [
               TileLayer(
                 urlTemplate:
-                    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                    'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
                 userAgentPackageName: 'nutrinitro.com.nutrinitro',
               ),
               if (points.length >= 2)

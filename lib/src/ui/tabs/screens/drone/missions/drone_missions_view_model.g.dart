@@ -42,7 +42,7 @@ final class DroneMissionsViewModelProvider
 }
 
 String _$droneMissionsViewModelHash() =>
-    r'dca07272c4fa008feb1a54bfa4feaee0e3911cfa';
+    r'f9bbe6da30b83beddf56cdb1dedd6eedb87a656f';
 
 abstract class _$DroneMissionsViewModel extends $Notifier<DroneMissionsState> {
   DroneMissionsState build();

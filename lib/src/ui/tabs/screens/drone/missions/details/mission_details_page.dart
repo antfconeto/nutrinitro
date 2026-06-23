@@ -22,6 +22,8 @@ class MissionDetailsPage extends ConsumerStatefulWidget {
 }
 
 class _MissionDetailsPageState extends ConsumerState<MissionDetailsPage> {
+  bool _isSatellite = false;
+
   @override
   void initState() {
     super.initState();
@@ -252,56 +254,97 @@ class _MissionDetailsPageState extends ConsumerState<MissionDetailsPage> {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(13),
-                      child: FlutterMap(
-                        options: MapOptions(
-                          initialCenter: points.first,
-                          initialZoom: 15,
-                        ),
+                      child: Stack(
                         children: [
-                          TileLayer(
-                            urlTemplate:
-                                'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                            userAgentPackageName: 'nutrinitro.com.nutrinitro',
-                          ),
-                          PolylineLayer(
-                            polylines: [
-                              Polyline(
-                                points: points,
-                                strokeWidth: 2.5,
-                                color: AppColors.green.withOpacity(0.8),
+                          FlutterMap(
+                            options: MapOptions(
+                              initialCenter: points.first,
+                              initialZoom: 15,
+                              initialCameraFit: points.length > 1
+                                  ? CameraFit.bounds(
+                                      bounds: LatLngBounds.fromPoints(points),
+                                      padding: const EdgeInsets.all(36),
+                                    )
+                                  : null,
+                            ),
+                            children: [
+                              TileLayer(
+                                urlTemplate: _isSatellite
+                                    ? 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'
+                                    : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                userAgentPackageName:
+                                    'nutrinitro.com.nutrinitro',
+                              ),
+                              PolylineLayer(
+                                polylines: [
+                                  Polyline(
+                                    points: points,
+                                    strokeWidth: 2.5,
+                                    color:
+                                        AppColors.green.withValues(alpha: 0.9),
+                                  ),
+                                ],
+                              ),
+                              MarkerLayer(
+                                markers:
+                                    mission.waypoints.asMap().entries.map((e) {
+                                  final index = e.key;
+                                  final wp = e.value;
+                                  return Marker(
+                                    point: LatLng(wp.latitude, wp.longitude),
+                                    width: 30,
+                                    height: 30,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: AppColors.green,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: AppColors.white,
+                                          width: 2,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black
+                                                .withValues(alpha: 0.25),
+                                            blurRadius: 3,
+                                          ),
+                                        ],
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          '${index + 1}',
+                                          style: const TextStyle(
+                                            color: AppColors.white,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
                               ),
                             ],
                           ),
-                          MarkerLayer(
-                            markers: mission.waypoints.asMap().entries.map((e) {
-                              final index = e.key;
-                              final wp = e.value;
-                              return Marker(
-                                point: LatLng(wp.latitude, wp.longitude),
-                                width: 30,
-                                height: 30,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: AppColors.green,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: AppColors.white,
-                                      width: 2,
-                                    ),
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      '${index + 1}',
-                                      style: const TextStyle(
-                                        color: AppColors.white,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }).toList(),
+                          Positioned(
+                            bottom: 12,
+                            right: 12,
+                            child: FloatingActionButton.small(
+                              heroTag: 'mission_details_satellite',
+                              onPressed: () =>
+                                  setState(() => _isSatellite = !_isSatellite),
+                              backgroundColor: AppColors.white,
+                              foregroundColor: _isSatellite
+                                  ? AppColors.green
+                                  : AppColors.grayMedium,
+                              elevation: 2,
+                              child: Icon(
+                                _isSatellite
+                                    ? Icons.map_outlined
+                                    : Icons.satellite_alt_outlined,
+                                size: 18,
+                              ),
+                            ),
                           ),
                         ],
                       ),
