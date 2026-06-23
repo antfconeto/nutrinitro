@@ -164,96 +164,126 @@ class _AnalysisListPageState extends ConsumerState<AnalysisListPage> {
         backgroundColor: AppColors.green,
         foregroundColor: AppColors.white,
         elevation: 0,
-        actions: [
-          Stack(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.tune_outlined),
-                onPressed: () => _showFilterSheet(context),
-              ),
-              if (state.activeFilterCount > 0)
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    width: 16,
-                    height: 16,
-                    decoration: const BoxDecoration(
-                      color: AppColors.orange,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Text(
-                        '${state.activeFilterCount}',
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ],
       ),
       body: SafeArea(
         child: Column(
           children: [
-            // ── Busca ────────────────────────────────────────────────────────
+            // ── Busca + filtro ────────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: TextField(
-                controller: _searchController,
-                onChanged: (v) => ref
-                    .read(analysesListViewModelProvider.notifier)
-                    .updateSearch(v),
-                decoration: InputDecoration(
-                  hintText: 'Buscar por título ou cultura...',
-                  hintStyle: AppText.hint,
-                  prefixIcon: const Icon(
-                    Icons.search,
-                    color: AppColors.grayMedium,
-                    size: 20,
-                  ),
-                  suffixIcon: state.searchQuery.isNotEmpty
-                      ? GestureDetector(
-                          onTap: () {
-                            _searchController.clear();
-                            ref
-                                .read(analysesListViewModelProvider.notifier)
-                                .updateSearch('');
-                          },
-                          child: const Icon(
-                            Icons.close,
-                            color: AppColors.grayMedium,
-                            size: 18,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: (v) => ref
+                          .read(analysesListViewModelProvider.notifier)
+                          .updateSearch(v),
+                      decoration: InputDecoration(
+                        hintText: 'Buscar por título ou cultura...',
+                        hintStyle: AppText.hint,
+                        prefixIcon: const Icon(
+                          Icons.search,
+                          color: AppColors.grayMedium,
+                          size: 20,
+                        ),
+                        suffixIcon: state.searchQuery.isNotEmpty
+                            ? GestureDetector(
+                                onTap: () {
+                                  _searchController.clear();
+                                  ref
+                                      .read(analysesListViewModelProvider.notifier)
+                                      .updateSearch('');
+                                },
+                                child: const Icon(
+                                  Icons.close,
+                                  color: AppColors.grayMedium,
+                                  size: 18,
+                                ),
+                              )
+                            : null,
+                        filled: true,
+                        fillColor: AppColors.white,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                              const BorderSide(color: Color(0xFFDDE4DD)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(
+                            color: AppColors.green,
+                            width: 1.5,
                           ),
-                        )
-                      : null,
-                  filled: true,
-                  fillColor: AppColors.white,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide.none,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: Color(0xFFDDE4DD)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(
-                      color: AppColors.green,
-                      width: 1.5,
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  Stack(
+                    children: [
+                      Material(
+                        color: AppColors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        child: InkWell(
+                          onTap: () => _showFilterSheet(context),
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            width: 46,
+                            height: 46,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: state.hasActiveFilters
+                                    ? AppColors.green
+                                    : const Color(0xFFDDE4DD),
+                                width: state.hasActiveFilters ? 1.5 : 1,
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.tune_outlined,
+                              color: state.hasActiveFilters
+                                  ? AppColors.green
+                                  : AppColors.grayMedium,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (state.activeFilterCount > 0)
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: Container(
+                            width: 14,
+                            height: 14,
+                            decoration: const BoxDecoration(
+                              color: AppColors.orange,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Center(
+                              child: Text(
+                                '${state.activeFilterCount}',
+                                style: const TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
               ),
             ),
 

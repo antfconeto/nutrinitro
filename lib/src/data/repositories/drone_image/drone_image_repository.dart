@@ -23,6 +23,18 @@ class DroneImageRepository {
     }
   }
 
+  Future<Result<List<DroneImageModel>>> all() async {
+    try {
+      final rows = await _db.query(
+        'drone_images',
+        orderBy: 'datetime DESC',
+      );
+      return Success(rows.map(DroneImageModel.fromMap).toList());
+    } catch (e) {
+      return Failure(Exception('Error fetching all drone images: $e'));
+    }
+  }
+
   Future<Result<List<DroneImageModel>>> findBy(
     String field,
     dynamic value,

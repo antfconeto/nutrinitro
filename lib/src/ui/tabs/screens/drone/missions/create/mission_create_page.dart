@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,6 +26,9 @@ class _MissionCreatePageState extends ConsumerState<MissionCreatePage> {
   late final TextEditingController _notesController;
   final MapController _mapController = MapController();
 
+  LatLng? _userLatLng;
+  bool _locationIsApprox = false;
+
   @override
   void initState() {
     super.initState();
@@ -36,19 +42,69 @@ class _MissionCreatePageState extends ConsumerState<MissionCreatePage> {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
     }
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) return;
 
+    if (permission != LocationPermission.denied &&
+        permission != LocationPermission.deniedForever) {
+      bool hasLastKnown = false;
+
+      // Instant feedback with cached position
+      try {
+        final last = await Geolocator.getLastKnownPosition();
+        if (last != null && mounted) {
+          final latLng = LatLng(last.latitude, last.longitude);
+          setState(() {
+            _userLatLng = latLng;
+            _locationIsApprox = false;
+          });
+          _mapController.move(latLng, 15);
+          hasLastKnown = true;
+        }
+      } catch (_) {}
+
+      // Fresh fix in background — updates dot, skips map move if already positioned
+      try {
+        final pos = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.medium,
+          ),
+        );
+        if (!mounted) return;
+        final latLng = LatLng(pos.latitude, pos.longitude);
+        setState(() {
+          _userLatLng = latLng;
+          _locationIsApprox = false;
+        });
+        if (!hasLastKnown) _mapController.move(latLng, 15);
+        return;
+      } catch (_) {}
+
+      if (hasLastKnown) return;
+    }
+
+    if (mounted && _userLatLng == null) await _moveToIpLocation();
+  }
+
+  Future<void> _moveToIpLocation() async {
+    final client = HttpClient();
     try {
-      final pos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.medium,
-        ),
-      );
-      if (mounted) {
-        _mapController.move(LatLng(pos.latitude, pos.longitude), 15);
-      }
-    } catch (_) {}
+      final req = await client.getUrl(Uri.parse('https://ipapi.co/json/'));
+      req.headers.set(HttpHeaders.acceptHeader, 'application/json');
+      final resp = await req.close();
+      final body = await resp.transform(utf8.decoder).join();
+      final data = jsonDecode(body) as Map<String, dynamic>;
+      final lat = (data['latitude'] as num?)?.toDouble();
+      final lon = (data['longitude'] as num?)?.toDouble();
+      if (!mounted || lat == null || lon == null) return;
+      final latLng = LatLng(lat, lon);
+      setState(() {
+        _userLatLng = latLng;
+        _locationIsApprox = true;
+      });
+      _mapController.move(latLng, 12);
+    } catch (_) {
+    } finally {
+      client.close();
+    }
   }
 
   @override
@@ -278,33 +334,6 @@ class _MissionCreatePageState extends ConsumerState<MissionCreatePage> {
         backgroundColor: AppColors.green,
         foregroundColor: AppColors.white,
         elevation: 0,
-        actions: [
-          if (state.isSubmitting)
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  color: AppColors.white,
-                  strokeWidth: 2,
-                ),
-              ),
-            )
-          else
-            TextButton(
-              onPressed: () =>
-                  ref.read(missionCreateViewModelProvider.notifier).submit(),
-              child: const Text(
-                'Salvar',
-                style: TextStyle(
-                  color: AppColors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                ),
-              ),
-            ),
-        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -468,6 +497,50 @@ class _MissionCreatePageState extends ConsumerState<MissionCreatePage> {
                               ),
                             ],
                           ),
+                        if (_userLatLng != null) ...[
+                          CircleLayer(
+                            circles: [
+                              CircleMarker(
+                                point: _userLatLng!,
+                                radius: _locationIsApprox ? 3000 : 40,
+                                useRadiusInMeter: _locationIsApprox,
+                                color: const Color(0xFF1A73E8)
+                                    .withValues(alpha: _locationIsApprox ? 0.08 : 0.15),
+                                borderColor: const Color(0xFF1A73E8)
+                                    .withValues(alpha: _locationIsApprox ? 0.25 : 0.4),
+                                borderStrokeWidth: 1.5,
+                              ),
+                            ],
+                          ),
+                          MarkerLayer(
+                            markers: [
+                              Marker(
+                                point: _userLatLng!,
+                                width: 20,
+                                height: 20,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: _locationIsApprox
+                                        ? AppColors.grayMedium
+                                        : const Color(0xFF1A73E8),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: AppColors.white,
+                                      width: 3,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black
+                                            .withValues(alpha: 0.25),
+                                        blurRadius: 4,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                         MarkerLayer(
                           markers: waypoints.asMap().entries.map((e) {
                             final index = e.key;
@@ -609,7 +682,48 @@ class _MissionCreatePageState extends ConsumerState<MissionCreatePage> {
               }),
             ],
 
-            const SizedBox(height: 40),
+            const SizedBox(height: 24),
+
+            // ── Botão Criar ───────────────────────────────────────────────────
+            SizedBox(
+              width: double.infinity,
+              height: 54,
+              child: ElevatedButton(
+                onPressed: state.isSubmitting
+                    ? null
+                    : () => ref
+                          .read(missionCreateViewModelProvider.notifier)
+                          .submit(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.green,
+                  disabledBackgroundColor:
+                      AppColors.green.withValues(alpha: 0.5),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  elevation: 0,
+                ),
+                child: state.isSubmitting
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          color: AppColors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        'Criar Missão',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.white,
+                        ),
+                      ),
+              ),
+            ),
+
+            const SizedBox(height: 24),
           ],
         ),
       ),

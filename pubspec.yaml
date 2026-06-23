@@ -61,6 +61,7 @@ dependencies:
     path_provider: ^2.1.5
     opencv_dart: ^2.2.1+4
     geolocator: ^13.0.2
+    equatable: ^2.0.5
 
 dev_dependencies:
     flutter_test:

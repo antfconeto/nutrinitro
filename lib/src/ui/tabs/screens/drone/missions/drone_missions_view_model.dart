@@ -1,3 +1,4 @@
+import 'package:nutrinitro/src/core/const/drone/mission_status.dart';
 import 'package:nutrinitro/src/core/interfaces/api_result_interface.dart';
 import 'package:nutrinitro/src/data/repositories/repositories_provider.dart';
 import 'package:nutrinitro/src/data/services/services_provider.dart';
@@ -22,7 +23,7 @@ class DroneMissionsViewModel extends _$DroneMissionsViewModel {
 
     switch (result) {
       case Success(value: final missions):
-        state = state.copyWith(isLoading: false, missions: missions);
+        state = state.copyWith(isLoading: false, allMissions: missions);
       case Failure(:final error):
         state = state.copyWith(
           isLoading: false,
@@ -30,6 +31,22 @@ class DroneMissionsViewModel extends _$DroneMissionsViewModel {
         );
     }
   }
+
+  void updateSearch(String query) =>
+      state = state.copyWith(searchQuery: query);
+
+  void toggleStatusFilter(MissionStatus status) {
+    final current = List<MissionStatus>.from(state.statusFilter);
+    if (current.contains(status)) {
+      current.remove(status);
+    } else {
+      current.add(status);
+    }
+    state = state.copyWith(statusFilter: current);
+  }
+
+  void clearFilters() =>
+      state = state.copyWith(searchQuery: '', statusFilter: []);
 
   Future<bool> delete(int missionId) async {
     final repo = await ref.read(missionRepositoryProvider.future);
@@ -41,7 +58,8 @@ class DroneMissionsViewModel extends _$DroneMissionsViewModel {
       case Success():
         await storageService.deleteMissionFiles(missionId);
         state = state.copyWith(
-          missions: state.missions.where((m) => m.id != missionId).toList(),
+          allMissions:
+              state.allMissions.where((m) => m.id != missionId).toList(),
         );
         return true;
       case Failure(:final error):
