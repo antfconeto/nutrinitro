@@ -29,26 +29,61 @@ class MissionDetailsViewModel extends _$MissionDetailsViewModel {
     }
   }
 
-  /// Uploads the mission to the drone service and redirects to the panel.
-  Future<bool> startMission() async {
-    if (state.mission == null) return false;
+  /// Uploads the mission to the drone service and starts execution.
+  /// Returns the mission ID on success so the caller can navigate to the monitor page.
+  Future<int?> startMission() async {
+    if (state.mission == null) return null;
 
+    state = state.copyWith(isStarting: true, clearError: true);
     try {
       final droneService = ref.read(droneServiceProvider);
       await droneService.uploadMission(state.mission!);
       await droneService.startMission();
 
-      // Update status in DB
       final repo = await ref.read(missionRepositoryProvider.future);
       await repo.update(state.mission!.id!, {
         'status': MissionStatus.executing.name,
         'started_at': DateTime.now().toIso8601String(),
       });
 
-      return true;
+      state = state.copyWith(isStarting: false);
+      return state.mission!.id!;
     } catch (e) {
-      state = state.copyWith(errorMessage: 'Erro ao iniciar missão: $e');
-      return false;
+      state = state.copyWith(
+        isStarting: false,
+        errorMessage: 'Erro ao iniciar missão: $e',
+      );
+      return null;
+    }
+  }
+
+  /// Creates a new mission with the same waypoints (clone / redo).
+  /// Returns the new mission's ID on success.
+  Future<int?> cloneMission() async {
+    if (state.mission == null) return null;
+
+    state = state.copyWith(isStarting: true, clearError: true);
+    try {
+      final repo = await ref.read(missionRepositoryProvider.future);
+      final result = await repo.create(
+        title: '${state.mission!.title} (Repetição)',
+        notes: state.mission!.notes,
+        waypoints: state.mission!.waypoints,
+      );
+      state = state.copyWith(isStarting: false);
+      switch (result) {
+        case Success(value: final mission):
+          return mission.id;
+        case Failure(:final error):
+          state = state.copyWith(errorMessage: 'Erro ao clonar missão: $error');
+          return null;
+      }
+    } catch (e) {
+      state = state.copyWith(
+        isStarting: false,
+        errorMessage: 'Erro ao clonar missão: $e',
+      );
+      return null;
     }
   }
 

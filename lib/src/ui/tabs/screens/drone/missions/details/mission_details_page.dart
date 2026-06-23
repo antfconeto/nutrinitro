@@ -3,10 +3,12 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:nutrinitro/src/core/const/drone/drone_connection_state.dart';
 import 'package:nutrinitro/src/core/const/drone/mission_status.dart';
 import 'package:nutrinitro/src/core/themes/app_colors.dart';
 import 'package:nutrinitro/src/core/themes/app_text.dart';
 import 'package:nutrinitro/src/data/models/drone/mission_model.dart';
+import 'package:nutrinitro/src/data/services/services_provider.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/drone/missions/details/mission_details_state.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/drone/missions/details/mission_details_view_model.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
@@ -108,22 +110,101 @@ class _MissionDetailsPageState extends ConsumerState<MissionDetailsPage> {
 
     if (confirmed != true || !context.mounted) return;
 
-    final success = await ref
+    final missionId = await ref
         .read(missionDetailsViewModelProvider.notifier)
         .startMission();
 
     if (!context.mounted) return;
 
-    if (success) {
+    if (missionId != null) {
       showTopSnackBar(
         Overlay.of(context),
         const CustomSnackBar.success(message: 'Missão iniciada!'),
       );
-      // Redireciona para o painel com a missão ativa
-      Navigator.of(context).pushNamedAndRemoveUntil(
-        '/tabs',
-        (route) => false,
-        arguments: 2, // tab Drone
+      Navigator.of(context).pushNamed(
+        '/drone/mission/monitor',
+        arguments: missionId,
+      );
+    }
+  }
+
+  Future<void> _confirmRedo(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.navy.withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.replay, color: AppColors.navy, size: 20),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Refazer missão?',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+                color: AppColors.navy,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Será criada uma nova missão com os mesmos waypoints, pronta para ser iniciada.',
+          style: AppText.body.copyWith(color: AppColors.grayMedium),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(
+              'Cancelar',
+              style: AppText.medium.copyWith(color: AppColors.grayMedium),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.navy,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              'Refazer',
+              style: AppText.medium.copyWith(
+                color: AppColors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    final newMissionId = await ref
+        .read(missionDetailsViewModelProvider.notifier)
+        .cloneMission();
+
+    if (!context.mounted) return;
+
+    if (newMissionId != null) {
+      showTopSnackBar(
+        Overlay.of(context),
+        const CustomSnackBar.success(message: 'Nova missão criada!'),
+      );
+      Navigator.of(context).pushReplacementNamed(
+        '/drone/mission/details',
+        arguments: newMissionId,
       );
     }
   }
@@ -131,6 +212,10 @@ class _MissionDetailsPageState extends ConsumerState<MissionDetailsPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(missionDetailsViewModelProvider);
+    final droneConnectionState = ref.watch(
+      droneServiceProvider.select((s) => s.connectionState),
+    );
+    final isConnected = droneConnectionState == DroneConnectionState.connected;
 
     ref.listen<MissionDetailsState>(missionDetailsViewModelProvider, (_, next) {
       if (next.errorMessage != null) {
@@ -158,6 +243,15 @@ class _MissionDetailsPageState extends ConsumerState<MissionDetailsPage> {
               tooltip: 'Editar missão',
               onPressed: () => _navigateToEdit(context, state.mission!),
             ),
+          if (state.mission != null &&
+              state.mission!.status == MissionStatus.completed)
+            IconButton(
+              icon: const Icon(Icons.replay),
+              tooltip: 'Refazer missão',
+              onPressed: state.isStarting
+                  ? null
+                  : () => _confirmRedo(context),
+            ),
         ],
       ),
       body: state.isLoading
@@ -166,7 +260,7 @@ class _MissionDetailsPageState extends ConsumerState<MissionDetailsPage> {
             )
           : state.mission == null
           ? _buildError()
-          : _buildContent(context, state.mission!),
+          : _buildContent(context, state, isConnected),
     );
   }
 
@@ -179,20 +273,53 @@ class _MissionDetailsPageState extends ConsumerState<MissionDetailsPage> {
     );
   }
 
-  Widget _buildContent(BuildContext context, MissionModel mission) {
+  Widget _buildContent(
+    BuildContext context,
+    MissionDetailsState state,
+    bool isConnected,
+  ) {
+    final mission = state.mission!;
     final canStart =
         mission.status == MissionStatus.planned ||
         mission.status == MissionStatus.aborted;
 
     return Column(
       children: [
+        // ── Drone not connected warning ────────────────────────────────────
+        if (canStart && !isConnected)
+          Material(
+            color: AppColors.orangeLight.withValues(alpha: 0.12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.wifi_off_outlined,
+                    size: 16,
+                    color: AppColors.orangeLight,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Drone desconectado. Conecte no painel antes de iniciar.',
+                      style: AppText.small.copyWith(
+                        color: AppColors.orangeLight,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Info ──────────────────────────────────────────────────────
+                // ── Info ─────────────────────────────────────────────────────
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -258,7 +385,7 @@ class _MissionDetailsPageState extends ConsumerState<MissionDetailsPage> {
 
                 const SizedBox(height: 16),
 
-                // ── Lista waypoints ───────────────────────────────────────────
+                // ── Lista waypoints ─────────────────────────────────────────
                 _sectionLabel('Waypoints'),
                 const SizedBox(height: 8),
                 ...mission.waypoints.asMap().entries.map((e) {
@@ -310,7 +437,7 @@ class _MissionDetailsPageState extends ConsumerState<MissionDetailsPage> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  '${wp.altitude.toStringAsFixed(0)}m  •  ${wp.speed.toStringAsFixed(1)}m/s  •  ${wp.capturePhoto ? '📷 Foto' : 'Sem foto'}',
+                                  '${wp.altitude.toStringAsFixed(0)}m  •  ${wp.speed.toStringAsFixed(1)}m/s  •  ${wp.capturePhoto ? 'Foto' : 'Sem foto'}',
                                   style: AppText.small.copyWith(
                                     color: AppColors.grayMedium,
                                     fontSize: 11,
@@ -331,7 +458,7 @@ class _MissionDetailsPageState extends ConsumerState<MissionDetailsPage> {
           ),
         ),
 
-        // ── Botão iniciar ─────────────────────────────────────────────────────
+        // ── Botão iniciar ─────────────────────────────────────────────────
         if (canStart)
           SafeArea(
             child: Padding(
@@ -340,21 +467,40 @@ class _MissionDetailsPageState extends ConsumerState<MissionDetailsPage> {
                 width: double.infinity,
                 height: 54,
                 child: ElevatedButton.icon(
-                  onPressed: () => _confirmStart(context),
+                  onPressed: (isConnected && !state.isStarting)
+                      ? () => _confirmStart(context)
+                      : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.green,
+                    disabledBackgroundColor:
+                        AppColors.green.withValues(alpha: 0.4),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                     elevation: 0,
                   ),
-                  icon: const Icon(
-                    Icons.flight_takeoff_outlined,
-                    color: AppColors.white,
-                  ),
-                  label: const Text(
-                    'Iniciar Missão',
-                    style: TextStyle(
+                  icon: state.isStarting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.white,
+                          ),
+                        )
+                      : Icon(
+                          isConnected
+                              ? Icons.flight_takeoff_outlined
+                              : Icons.wifi_off_outlined,
+                          color: AppColors.white,
+                        ),
+                  label: Text(
+                    state.isStarting
+                        ? 'Iniciando...'
+                        : isConnected
+                        ? 'Iniciar Missão'
+                        : 'Conecte o drone primeiro',
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: AppColors.white,

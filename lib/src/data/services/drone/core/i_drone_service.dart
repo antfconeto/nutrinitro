@@ -35,6 +35,10 @@ abstract class IDroneService {
 
   // ─── Camera ─────────────────────────────────────────────────────────────────
 
+  /// Fired whenever a photo is captured during a mission.
+  /// Emits the absolute local path of the saved image file.
+  Stream<String> get missionPhotoStream;
+
   Future<void> capturePhoto();
   Future<void> startIntervalShooting(Duration interval);
   Future<void> stopIntervalShooting();

@@ -14,34 +14,28 @@ class DronePanelViewModel extends _$DronePanelViewModel {
   @override
   DronePanelState build() {
     ref.onDispose(_cancelSubscriptions);
-    return const DronePanelState();
+
+    final drone = ref.read(droneServiceProvider);
+
+    // Subscribe immediately so state stays in sync even after navigating away and back
+    _connectionSub = drone.connectionStream.listen(_onConnectionState);
+
+    if (drone.connectionState == DroneConnectionState.connected) {
+      _listenTelemetry();
+    }
+
+    return DronePanelState(
+      connectionState: drone.connectionState,
+      telemetry: drone.lastTelemetry,
+    );
   }
 
   // ─── Connection ─────────────────────────────────────────────────────────────
 
   Future<void> connect() async {
     state = state.copyWith(isConnecting: true, clearError: true);
-
     try {
-      final drone = ref.read(droneServiceProvider);
-
-      _connectionSub = drone.connectionStream.listen((connectionState) {
-        state = state.copyWith(connectionState: connectionState);
-
-        if (connectionState == DroneConnectionState.connected) {
-          state = state.copyWith(isConnecting: false);
-          _listenTelemetry();
-        }
-
-        if (connectionState == DroneConnectionState.error) {
-          state = state.copyWith(
-            isConnecting: false,
-            errorMessage: 'Erro ao conectar com o drone.',
-          );
-        }
-      });
-
-      await drone.connect();
+      await ref.read(droneServiceProvider).connect();
     } catch (e) {
       state = state.copyWith(
         isConnecting: false,
@@ -52,15 +46,27 @@ class DronePanelViewModel extends _$DronePanelViewModel {
 
   Future<void> disconnect() async {
     try {
-      final drone = ref.read(droneServiceProvider);
-      await drone.disconnect();
-      _cancelSubscriptions();
-      state = state.copyWith(
-        connectionState: DroneConnectionState.disconnected,
-        clearTelemetry: true,
-      );
+      await ref.read(droneServiceProvider).disconnect();
     } catch (e) {
       state = state.copyWith(errorMessage: 'Erro ao desconectar: $e');
+    }
+  }
+
+  void _onConnectionState(DroneConnectionState connectionState) {
+    state = state.copyWith(connectionState: connectionState, isConnecting: false);
+
+    if (connectionState == DroneConnectionState.connected) {
+      _listenTelemetry();
+    }
+
+    if (connectionState == DroneConnectionState.error) {
+      state = state.copyWith(errorMessage: 'Erro ao conectar com o drone.');
+    }
+
+    if (connectionState == DroneConnectionState.disconnected) {
+      _telemetrySub?.cancel();
+      _telemetrySub = null;
+      state = state.copyWith(clearTelemetry: true);
     }
   }
 
@@ -101,10 +107,9 @@ class DronePanelViewModel extends _$DronePanelViewModel {
   // ─── Helpers ────────────────────────────────────────────────────────────────
 
   void _listenTelemetry() {
-  _telemetrySub?.cancel();
-    final drone = ref.read(droneServiceProvider);
-    _telemetrySub = drone.telemetryStream.listen((telemetry) {
-      state = state.copyWith(telemetry: telemetry);
+    _telemetrySub?.cancel();
+    _telemetrySub = ref.read(droneServiceProvider).telemetryStream.listen((t) {
+      state = state.copyWith(telemetry: t);
     });
   }
 

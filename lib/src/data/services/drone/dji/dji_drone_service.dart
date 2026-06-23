@@ -134,6 +134,14 @@ class DjiDroneService implements IDroneService {
   }
 
   @override
+  Stream<String> get missionPhotoStream {
+    // TODO: stream photo paths from DJI camera as they are captured and saved locally
+    throw UnimplementedError(
+      'DjiDroneService.missionPhotoStream not implemented',
+    );
+  }
+
+  @override
   Future<void> capturePhoto() async {
     // TODO: await _dji.takePhoto()
     throw UnimplementedError('DjiDroneService.capturePhoto() not implemented');

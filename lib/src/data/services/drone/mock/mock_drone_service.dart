@@ -1,11 +1,15 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
+import 'package:flutter/services.dart';
 import 'package:nutrinitro/src/core/const/drone/drone_connection_state.dart';
 import 'package:nutrinitro/src/core/const/drone/gps_signal_level.dart';
 import 'package:nutrinitro/src/data/models/drone/camera_parameters.dart';
 import 'package:nutrinitro/src/data/models/drone/mission_model.dart';
 import 'package:nutrinitro/src/data/models/drone/telemetry_data.dart';
 import 'package:nutrinitro/src/data/services/drone/core/i_drone_service.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 class MockDroneService implements IDroneService {
   final _random = Random();
@@ -32,6 +36,7 @@ class MockDroneService implements IDroneService {
   final _telemetryCtrl = StreamController<TelemetryData>.broadcast();
   final _missionCtrl = StreamController<int>.broadcast();
   final _videoCtrl = StreamController<List<int>>.broadcast();
+  final _photoCtrl = StreamController<String>.broadcast();
 
   Timer? _telemetryTimer;
   Timer? _missionTimer;
@@ -215,8 +220,24 @@ class MockDroneService implements IDroneService {
   // ─── Camera ─────────────────────────────────────────────────────────────────
 
   @override
+  Stream<String> get missionPhotoStream => _photoCtrl.stream;
+
+  @override
   Future<void> capturePhoto() async {
     await Future.delayed(const Duration(milliseconds: 300));
+    final missionId = _currentMission?.id;
+    if (missionId == null) return;
+    try {
+      final bytes = await rootBundle.load('assets/images/crops/corn.png');
+      final base = await getApplicationDocumentsDirectory();
+      final dir = Directory(p.join(base.path, 'missions', missionId.toString()));
+      await dir.create(recursive: true);
+      final file = File(
+        p.join(dir.path, 'mock_${DateTime.now().millisecondsSinceEpoch}.png'),
+      );
+      await file.writeAsBytes(bytes.buffer.asUint8List());
+      _photoCtrl.add(file.path);
+    } catch (_) {}
   }
 
   @override
@@ -293,5 +314,6 @@ class MockDroneService implements IDroneService {
     _telemetryCtrl.close();
     _missionCtrl.close();
     _videoCtrl.close();
+    _photoCtrl.close();
   }
 }
