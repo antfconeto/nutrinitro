@@ -42,7 +42,7 @@ final class DronePanelViewModelProvider
 }
 
 String _$dronePanelViewModelHash() =>
-    r'4b3f619382b66dd569b67cd2f354677e184d763a';
+    r'7ab495d9b41ad692e6366ff412d72614bfbf828a';
 
 abstract class _$DronePanelViewModel extends $Notifier<DronePanelState> {
   DronePanelState build();

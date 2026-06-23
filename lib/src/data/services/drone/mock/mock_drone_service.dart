@@ -77,7 +77,7 @@ class MockDroneService implements IDroneService {
   Stream<TelemetryData> get telemetryStream => _telemetryCtrl.stream;
 
   void _startTelemetry() {
-    _telemetryTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+    _telemetryTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_inFlight) {
         _lat += (_random.nextDouble() - 0.5) * 0.00002;
         _lng += (_random.nextDouble() - 0.5) * 0.00002;

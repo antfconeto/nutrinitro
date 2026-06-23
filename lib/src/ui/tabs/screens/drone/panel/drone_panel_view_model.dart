@@ -101,6 +101,7 @@ class DronePanelViewModel extends _$DronePanelViewModel {
   // ─── Helpers ────────────────────────────────────────────────────────────────
 
   void _listenTelemetry() {
+    _telemetrySub?.cancel();
     final drone = ref.read(droneServiceProvider);
     _telemetrySub = drone.telemetryStream.listen((telemetry) {
       state = state.copyWith(telemetry: telemetry);
