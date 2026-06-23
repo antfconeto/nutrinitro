@@ -169,34 +169,69 @@ class _DroneMediaPageState extends ConsumerState<DroneMediaPage> {
             if (state.hasActiveFilters)
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                child: Row(
-                  children: [
-                    if (state.linkedFilter != null)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: _ActiveChip(
-                          label: state.linkedFilter!
-                              ? 'Vinculadas'
-                              : 'Não vinculadas',
-                          onRemove: () => ref
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      if (state.linkedFilter != null)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: _ActiveChip(
+                            label: state.linkedFilter!
+                                ? 'Vinculadas'
+                                : 'Não vinculadas',
+                            onRemove: () => ref
+                                .read(droneMediaViewModelProvider.notifier)
+                                .setLinkedFilter(null),
+                          ),
+                        ),
+                      if (state.dateFrom != null)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: _ActiveChip(
+                            label:
+                                'De ${DateFormat('dd/MM/yy').format(state.dateFrom!)}',
+                            onRemove: () => ref
+                                .read(droneMediaViewModelProvider.notifier)
+                                .setDateFrom(null),
+                          ),
+                        ),
+                      if (state.dateTo != null)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: _ActiveChip(
+                            label:
+                                'Até ${DateFormat('dd/MM/yy').format(state.dateTo!)}',
+                            onRemove: () => ref
+                                .read(droneMediaViewModelProvider.notifier)
+                                .setDateTo(null),
+                          ),
+                        ),
+                      if (state.sortOrder != MediaSortOrder.newestFirst)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: _ActiveChip(
+                            label: state.sortOrder.label,
+                            onRemove: () => ref
+                                .read(droneMediaViewModelProvider.notifier)
+                                .updateSortOrder(MediaSortOrder.newestFirst),
+                          ),
+                        ),
+                      GestureDetector(
+                        onTap: () {
+                          _searchController.clear();
+                          ref
                               .read(droneMediaViewModelProvider.notifier)
-                              .setLinkedFilter(null),
+                              .clearFilters();
+                        },
+                        child: Text(
+                          'Limpar',
+                          style:
+                              AppText.small.copyWith(color: AppColors.tomato),
                         ),
                       ),
-                    GestureDetector(
-                      onTap: () {
-                        _searchController.clear();
-                        ref
-                            .read(droneMediaViewModelProvider.notifier)
-                            .clearFilters();
-                      },
-                      child: Text(
-                        'Limpar',
-                        style:
-                            AppText.small.copyWith(color: AppColors.tomato),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
 
@@ -436,6 +471,7 @@ class _MediaFilterSheet extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 20),
+          // ── Vínculo ─────────────────────────────────────────────────────────
           Text(
             'Vínculo com análise',
             style: AppText.body.copyWith(
@@ -464,6 +500,80 @@ class _MediaFilterSheet extends ConsumerWidget {
               ),
             ],
           ),
+
+          const SizedBox(height: 20),
+
+          // ── Período ─────────────────────────────────────────────────────────
+          Text(
+            'Período',
+            style: AppText.body.copyWith(
+              color: AppColors.grayMedium,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _DateField(
+                  placeholder: 'Início',
+                  date: state.dateFrom,
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: state.dateFrom ?? DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null) vm.setDateFrom(picked);
+                  },
+                  onClear: () => vm.setDateFrom(null),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _DateField(
+                  placeholder: 'Fim',
+                  date: state.dateTo,
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: state.dateTo ?? DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null) vm.setDateTo(picked);
+                  },
+                  onClear: () => vm.setDateTo(null),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // ── Ordenar ─────────────────────────────────────────────────────────
+          Text(
+            'Ordenar por',
+            style: AppText.body.copyWith(
+              color: AppColors.grayMedium,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            children: MediaSortOrder.values
+                .map(
+                  (o) => _FilterChip(
+                    label: o.label,
+                    selected: state.sortOrder == o,
+                    onTap: () => vm.updateSortOrder(o),
+                  ),
+                )
+                .toList(),
+          ),
+
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
@@ -528,6 +638,74 @@ class _FilterChip extends StatelessWidget {
             fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
             color: selected ? AppColors.green : AppColors.grayMedium,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Date field ───────────────────────────────────────────────────────────────
+
+class _DateField extends StatelessWidget {
+  final String placeholder;
+  final DateTime? date;
+  final VoidCallback onTap;
+  final VoidCallback onClear;
+
+  const _DateField({
+    required this.placeholder,
+    required this.date,
+    required this.onTap,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasDate = date != null;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: hasDate
+              ? AppColors.green.withValues(alpha: 0.06)
+              : AppColors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: hasDate
+                ? AppColors.green.withValues(alpha: 0.5)
+                : const Color(0xFFDDE4DD),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.calendar_today_outlined,
+              size: 13,
+              color: hasDate ? AppColors.green : AppColors.grayMedium,
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                hasDate
+                    ? DateFormat('dd/MM/yyyy').format(date!)
+                    : placeholder,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: hasDate ? AppColors.green : AppColors.grayMedium,
+                ),
+              ),
+            ),
+            if (hasDate)
+              GestureDetector(
+                onTap: onClear,
+                child: const Icon(
+                  Icons.close,
+                  size: 14,
+                  color: AppColors.green,
+                ),
+              ),
+          ],
         ),
       ),
     );

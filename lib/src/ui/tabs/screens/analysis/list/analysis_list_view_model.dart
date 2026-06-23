@@ -51,6 +51,8 @@ class AnalysesListViewModel extends _$AnalysesListViewModel {
       cropFilter: state.cropFilter,
       searchQuery: state.searchQuery,
       sortOrder: state.sortOrder.sqlOrderBy,
+      dateFrom: state.dateFrom,
+      dateTo: state.dateTo,
     );
 
     switch (result) {
@@ -83,6 +85,8 @@ class AnalysesListViewModel extends _$AnalysesListViewModel {
       cropFilter: state.cropFilter,
       searchQuery: state.searchQuery,
       sortOrder: state.sortOrder.sqlOrderBy,
+      dateFrom: state.dateFrom,
+      dateTo: state.dateTo,
     );
 
     switch (result) {
@@ -134,12 +138,24 @@ class AnalysesListViewModel extends _$AnalysesListViewModel {
     await fetchAnalyses(refresh: true);
   }
 
+  Future<void> setDateFrom(DateTime? date) async {
+    state = state.copyWith(dateFrom: date);
+    await fetchAnalyses(refresh: true);
+  }
+
+  Future<void> setDateTo(DateTime? date) async {
+    state = state.copyWith(dateTo: date);
+    await fetchAnalyses(refresh: true);
+  }
+
   Future<void> clearFilters() async {
     state = state.copyWith(
       searchQuery: '',
       statusFilter: const {},
       cropFilter: const {},
       sortOrder: AnalysisSortOrder.newestFirst,
+      dateFrom: null,
+      dateTo: null,
     );
     await fetchAnalyses(refresh: true);
   }

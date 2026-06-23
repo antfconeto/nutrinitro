@@ -46,6 +46,8 @@ class AnalysisRepository {
     Set<int> cropFilter = const {},
     String searchQuery = '',
     String sortOrder = 'datetime DESC',
+    DateTime? dateFrom,
+    DateTime? dateTo,
   }) async {
     try {
       final whereClauses = <String>[];
@@ -69,6 +71,21 @@ class AnalysisRepository {
       if (searchQuery.isNotEmpty) {
         whereClauses.add('(a.title LIKE ? OR c.name LIKE ?)');
         whereArgs.addAll(['%$searchQuery%', '%$searchQuery%']);
+      }
+
+      // Date range
+      if (dateFrom != null) {
+        whereClauses.add('a.datetime >= ?');
+        whereArgs.add(
+          DateTime(dateFrom.year, dateFrom.month, dateFrom.day).toIso8601String(),
+        );
+      }
+      if (dateTo != null) {
+        whereClauses.add('a.datetime <= ?');
+        whereArgs.add(
+          DateTime(dateTo.year, dateTo.month, dateTo.day, 23, 59, 59, 999)
+              .toIso8601String(),
+        );
       }
 
       final whereString = whereClauses.isNotEmpty

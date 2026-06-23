@@ -49,6 +49,8 @@ class AnalysesListState extends Equatable {
   final Set<AnalysisStatus> statusFilter;
   final Set<int> cropFilter;
   final AnalysisSortOrder sortOrder;
+  final DateTime? dateFrom;
+  final DateTime? dateTo;
 
   const AnalysesListState({
     this.isLoading = false,
@@ -61,18 +63,24 @@ class AnalysesListState extends Equatable {
     this.statusFilter = const {},
     this.cropFilter = const {},
     this.sortOrder = AnalysisSortOrder.newestFirst,
+    this.dateFrom,
+    this.dateTo,
   });
 
   bool get hasActiveFilters =>
       searchQuery.isNotEmpty ||
       statusFilter.isNotEmpty ||
       cropFilter.isNotEmpty ||
-      sortOrder != AnalysisSortOrder.newestFirst;
+      sortOrder != AnalysisSortOrder.newestFirst ||
+      dateFrom != null ||
+      dateTo != null;
 
   int get activeFilterCount =>
       (statusFilter.isNotEmpty ? 1 : 0) +
       (cropFilter.isNotEmpty ? 1 : 0) +
-      (sortOrder != AnalysisSortOrder.newestFirst ? 1 : 0);
+      (sortOrder != AnalysisSortOrder.newestFirst ? 1 : 0) +
+      (dateFrom != null ? 1 : 0) +
+      (dateTo != null ? 1 : 0);
 
   AnalysesListState copyWith({
     bool? isLoading,
@@ -85,6 +93,8 @@ class AnalysesListState extends Equatable {
     Set<AnalysisStatus>? statusFilter,
     Set<int>? cropFilter,
     AnalysisSortOrder? sortOrder,
+    Object? dateFrom = _sentinel,
+    Object? dateTo = _sentinel,
     bool clearError = false,
   }) {
     return AnalysesListState(
@@ -98,6 +108,8 @@ class AnalysesListState extends Equatable {
       statusFilter: statusFilter ?? this.statusFilter,
       cropFilter: cropFilter ?? this.cropFilter,
       sortOrder: sortOrder ?? this.sortOrder,
+      dateFrom: dateFrom == _sentinel ? this.dateFrom : dateFrom as DateTime?,
+      dateTo: dateTo == _sentinel ? this.dateTo : dateTo as DateTime?,
     );
   }
 
@@ -113,5 +125,9 @@ class AnalysesListState extends Equatable {
     statusFilter,
     cropFilter,
     sortOrder,
+    dateFrom,
+    dateTo,
   ];
 }
+
+const Object _sentinel = Object();

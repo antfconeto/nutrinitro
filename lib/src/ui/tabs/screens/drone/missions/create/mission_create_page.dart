@@ -28,6 +28,7 @@ class _MissionCreatePageState extends ConsumerState<MissionCreatePage> {
 
   LatLng? _userLatLng;
   bool _locationIsApprox = false;
+  bool _isSatellite = false;
 
   @override
   void initState() {
@@ -121,6 +122,7 @@ class _MissionCreatePageState extends ConsumerState<MissionCreatePage> {
   ) {
     final altCtrl = TextEditingController(text: wp.altitude.toStringAsFixed(0));
     final speedCtrl = TextEditingController(text: wp.speed.toStringAsFixed(1));
+    bool capturePhoto = wp.capturePhoto;
 
     showModalBottomSheet(
       context: context,
@@ -202,7 +204,7 @@ class _MissionCreatePageState extends ConsumerState<MissionCreatePage> {
 
             // Capturar foto
             StatefulBuilder(
-              builder: (context, setSheetState) => Row(
+              builder: (_, setSheetState) => Row(
                 children: [
                   Expanded(
                     child: Column(
@@ -222,14 +224,10 @@ class _MissionCreatePageState extends ConsumerState<MissionCreatePage> {
                     ),
                   ),
                   Switch(
-                    value: wp.capturePhoto,
-                    activeColor: AppColors.green,
-                    onChanged: (v) {
-                      setSheetState(() {});
-                      ref
-                          .read(missionCreateViewModelProvider.notifier)
-                          .updateWaypoint(index, wp.copyWith(capturePhoto: v));
-                    },
+                    value: capturePhoto,
+                    activeThumbColor: AppColors.green,
+                    activeTrackColor: AppColors.green.withValues(alpha: 0.4),
+                    onChanged: (v) => setSheetState(() => capturePhoto = v),
                   ),
                 ],
               ),
@@ -271,7 +269,11 @@ class _MissionCreatePageState extends ConsumerState<MissionCreatePage> {
                           .read(missionCreateViewModelProvider.notifier)
                           .updateWaypoint(
                             index,
-                            wp.copyWith(altitude: alt, speed: speed),
+                            wp.copyWith(
+                              altitude: alt,
+                              speed: speed,
+                              capturePhoto: capturePhoto,
+                            ),
                           );
                       Navigator.of(context).pop();
                     },
@@ -483,8 +485,9 @@ class _MissionCreatePageState extends ConsumerState<MissionCreatePage> {
                       ),
                       children: [
                         TileLayer(
-                          urlTemplate:
-                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          urlTemplate: _isSatellite
+                              ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+                              : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                           userAgentPackageName: 'nutrinitro.com.nutrinitro',
                         ),
                         if (points.length >= 2)
@@ -585,6 +588,26 @@ class _MissionCreatePageState extends ConsumerState<MissionCreatePage> {
                           }).toList(),
                         ),
                       ],
+                    ),
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: FloatingActionButton.small(
+                        heroTag: 'mission_create_satellite',
+                        onPressed: () =>
+                            setState(() => _isSatellite = !_isSatellite),
+                        backgroundColor: AppColors.white,
+                        foregroundColor: _isSatellite
+                            ? AppColors.green
+                            : AppColors.grayMedium,
+                        elevation: 2,
+                        child: Icon(
+                          _isSatellite
+                              ? Icons.map_outlined
+                              : Icons.satellite_alt_outlined,
+                          size: 18,
+                        ),
+                      ),
                     ),
                     Positioned(
                       bottom: 12,

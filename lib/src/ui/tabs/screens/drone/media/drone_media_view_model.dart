@@ -58,8 +58,20 @@ class DroneMediaViewModel extends _$DroneMediaViewModel {
   void setLinkedFilter(bool? value) =>
       state = state.copyWith(linkedFilter: value);
 
-  void clearFilters() =>
-      state = state.copyWith(searchQuery: '', linkedFilter: null);
+  void setDateFrom(DateTime? date) => state = state.copyWith(dateFrom: date);
+
+  void setDateTo(DateTime? date) => state = state.copyWith(dateTo: date);
+
+  void updateSortOrder(MediaSortOrder order) =>
+      state = state.copyWith(sortOrder: order);
+
+  void clearFilters() => state = state.copyWith(
+        searchQuery: '',
+        linkedFilter: null,
+        dateFrom: null,
+        dateTo: null,
+        sortOrder: MediaSortOrder.newestFirst,
+      );
 
   void clearSearch() => state = state.copyWith(searchQuery: '');
 }

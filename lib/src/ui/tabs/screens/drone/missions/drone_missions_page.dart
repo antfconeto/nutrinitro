@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:nutrinitro/src/core/const/drone/mission_status.dart';
 import 'package:nutrinitro/src/core/themes/app_colors.dart';
 import 'package:nutrinitro/src/core/themes/app_text.dart';
@@ -196,6 +198,38 @@ class _DroneMissionsPageState extends ConsumerState<DroneMissionsPage> {
                           ),
                         ),
                       ),
+                      if (state.dateFrom != null)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: _ActiveChip(
+                            label:
+                                'De ${DateFormat('dd/MM/yy').format(state.dateFrom!)}',
+                            onRemove: () => ref
+                                .read(droneMissionsViewModelProvider.notifier)
+                                .setDateFrom(null),
+                          ),
+                        ),
+                      if (state.dateTo != null)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: _ActiveChip(
+                            label:
+                                'Até ${DateFormat('dd/MM/yy').format(state.dateTo!)}',
+                            onRemove: () => ref
+                                .read(droneMissionsViewModelProvider.notifier)
+                                .setDateTo(null),
+                          ),
+                        ),
+                      if (state.sortOrder != MissionSortOrder.newestFirst)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: _ActiveChip(
+                            label: state.sortOrder.label,
+                            onRemove: () => ref
+                                .read(droneMissionsViewModelProvider.notifier)
+                                .updateSortOrder(MissionSortOrder.newestFirst),
+                          ),
+                        ),
                       GestureDetector(
                         onTap: () {
                           _searchController.clear();
@@ -340,7 +374,6 @@ class _DroneMissionsPageState extends ConsumerState<DroneMissionsPage> {
           borderRadius: BorderRadius.circular(14),
           splashColor: AppColors.green.withValues(alpha: 0.06),
           child: Container(
-            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
               boxShadow: [
@@ -351,71 +384,165 @@ class _DroneMissionsPageState extends ConsumerState<DroneMissionsPage> {
                 ),
               ],
             ),
-            child: Row(
+            child: Column(
               children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: _statusColor(mission.status).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.route_outlined,
-                    color: _statusColor(mission.status),
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                if (mission.waypoints.isNotEmpty)
+                  _buildMapPreview(mission),
+                Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Row(
                     children: [
-                      Text(
-                        mission.title,
-                        style: AppText.medium.copyWith(
-                          fontSize: 15,
-                          color: AppColors.navy,
-                          fontWeight: FontWeight.w600,
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: _statusColor(mission.status)
+                              .withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        child: Icon(
+                          Icons.route_outlined,
+                          color: _statusColor(mission.status),
+                          size: 20,
+                        ),
                       ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.place_outlined,
-                            size: 12,
-                            color: AppColors.grayMedium,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${mission.waypoints.length} waypoint${mission.waypoints.length != 1 ? 's' : ''}',
-                            style: AppText.small
-                                .copyWith(color: AppColors.grayMedium),
-                          ),
-                          const SizedBox(width: 10),
-                          const Icon(
-                            Icons.calendar_today_outlined,
-                            size: 12,
-                            color: AppColors.grayMedium,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            DateFormat('dd/MM/yyyy').format(mission.createdAt),
-                            style: AppText.small
-                                .copyWith(color: AppColors.grayMedium),
-                          ),
-                        ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              mission.title,
+                              style: AppText.medium.copyWith(
+                                fontSize: 15,
+                                color: AppColors.navy,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.place_outlined,
+                                  size: 12,
+                                  color: AppColors.grayMedium,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${mission.waypoints.length} waypoint${mission.waypoints.length != 1 ? 's' : ''}',
+                                  style: AppText.small
+                                      .copyWith(color: AppColors.grayMedium),
+                                ),
+                                const SizedBox(width: 10),
+                                const Icon(
+                                  Icons.calendar_today_outlined,
+                                  size: 12,
+                                  color: AppColors.grayMedium,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  DateFormat('dd/MM/yyyy')
+                                      .format(mission.createdAt),
+                                  style: AppText.small
+                                      .copyWith(color: AppColors.grayMedium),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
+                      const SizedBox(width: 8),
+                      _buildStatusBadge(mission.status),
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                _buildStatusBadge(mission.status),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMapPreview(MissionModel mission) {
+    final points = mission.waypoints
+        .map((w) => LatLng(w.latitude, w.longitude))
+        .toList();
+
+    final options = points.length == 1
+        ? MapOptions(
+            initialCenter: points.first,
+            initialZoom: 15,
+            interactionOptions:
+                const InteractionOptions(flags: InteractiveFlag.none),
+          )
+        : MapOptions(
+            initialCameraFit: CameraFit.bounds(
+              bounds: LatLngBounds.fromPoints(points),
+              padding: const EdgeInsets.all(28),
+            ),
+            interactionOptions:
+                const InteractionOptions(flags: InteractiveFlag.none),
+          );
+
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+      child: SizedBox(
+        height: 120,
+        child: IgnorePointer(
+          child: FlutterMap(
+            options: options,
+            children: [
+              TileLayer(
+                urlTemplate:
+                    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                userAgentPackageName: 'nutrinitro.com.nutrinitro',
+              ),
+              if (points.length >= 2)
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: points,
+                      strokeWidth: 2.5,
+                      color: AppColors.green.withValues(alpha: 0.9),
+                    ),
+                  ],
+                ),
+              MarkerLayer(
+                markers: points.asMap().entries.map((e) {
+                  return Marker(
+                    point: e.value,
+                    width: 22,
+                    height: 22,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.green,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.white, width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.3),
+                            blurRadius: 3,
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${e.key + 1}',
+                          style: const TextStyle(
+                            color: AppColors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
           ),
         ),
       ),
@@ -632,6 +759,7 @@ class _MissionFilterSheet extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 20),
+          // ── Status ──────────────────────────────────────────────────────────
           Text(
             'Status',
             style: AppText.body.copyWith(
@@ -654,6 +782,81 @@ class _MissionFilterSheet extends ConsumerWidget {
                 )
                 .toList(),
           ),
+
+          const SizedBox(height: 20),
+
+          // ── Período ─────────────────────────────────────────────────────────
+          Text(
+            'Período',
+            style: AppText.body.copyWith(
+              color: AppColors.grayMedium,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _DateField(
+                  placeholder: 'Início',
+                  date: state.dateFrom,
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: state.dateFrom ?? DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null) vm.setDateFrom(picked);
+                  },
+                  onClear: () => vm.setDateFrom(null),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _DateField(
+                  placeholder: 'Fim',
+                  date: state.dateTo,
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: state.dateTo ?? DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null) vm.setDateTo(picked);
+                  },
+                  onClear: () => vm.setDateTo(null),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // ── Ordenar ─────────────────────────────────────────────────────────
+          Text(
+            'Ordenar por',
+            style: AppText.body.copyWith(
+              color: AppColors.grayMedium,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: MissionSortOrder.values
+                .map(
+                  (o) => _FilterChip(
+                    label: o.label,
+                    selected: state.sortOrder == o,
+                    onTap: () => vm.updateSortOrder(o),
+                  ),
+                )
+                .toList(),
+          ),
+
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
@@ -730,6 +933,74 @@ class _FilterChip extends StatelessWidget {
             fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
             color: selected ? activeColor : AppColors.grayMedium,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Date field ───────────────────────────────────────────────────────────────
+
+class _DateField extends StatelessWidget {
+  final String placeholder;
+  final DateTime? date;
+  final VoidCallback onTap;
+  final VoidCallback onClear;
+
+  const _DateField({
+    required this.placeholder,
+    required this.date,
+    required this.onTap,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasDate = date != null;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: hasDate
+              ? AppColors.green.withValues(alpha: 0.06)
+              : AppColors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: hasDate
+                ? AppColors.green.withValues(alpha: 0.5)
+                : const Color(0xFFDDE4DD),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.calendar_today_outlined,
+              size: 13,
+              color: hasDate ? AppColors.green : AppColors.grayMedium,
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                hasDate
+                    ? DateFormat('dd/MM/yyyy').format(date!)
+                    : placeholder,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: hasDate ? AppColors.green : AppColors.grayMedium,
+                ),
+              ),
+            ),
+            if (hasDate)
+              GestureDetector(
+                onTap: onClear,
+                child: const Icon(
+                  Icons.close,
+                  size: 14,
+                  color: AppColors.green,
+                ),
+              ),
+          ],
         ),
       ),
     );

@@ -45,8 +45,20 @@ class DroneMissionsViewModel extends _$DroneMissionsViewModel {
     state = state.copyWith(statusFilter: current);
   }
 
-  void clearFilters() =>
-      state = state.copyWith(searchQuery: '', statusFilter: []);
+  void setDateFrom(DateTime? date) => state = state.copyWith(dateFrom: date);
+
+  void setDateTo(DateTime? date) => state = state.copyWith(dateTo: date);
+
+  void updateSortOrder(MissionSortOrder order) =>
+      state = state.copyWith(sortOrder: order);
+
+  void clearFilters() => state = state.copyWith(
+        searchQuery: '',
+        statusFilter: [],
+        dateFrom: null,
+        dateTo: null,
+        sortOrder: MissionSortOrder.newestFirst,
+      );
 
   Future<bool> delete(int missionId) async {
     final repo = await ref.read(missionRepositoryProvider.future);
