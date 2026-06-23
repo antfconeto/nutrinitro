@@ -22,8 +22,6 @@ class MissionDetailsPage extends ConsumerStatefulWidget {
 }
 
 class _MissionDetailsPageState extends ConsumerState<MissionDetailsPage> {
-  bool _isSatellite = false;
-
   @override
   void initState() {
     super.initState();
@@ -46,7 +44,7 @@ class _MissionDetailsPageState extends ConsumerState<MissionDetailsPage> {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: AppColors.green.withOpacity(0.1),
+                color: AppColors.green.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -163,10 +161,6 @@ class _MissionDetailsPageState extends ConsumerState<MissionDetailsPage> {
   }
 
   Widget _buildContent(BuildContext context, MissionModel mission) {
-    final points = mission.waypoints
-        .map((w) => LatLng(w.latitude, w.longitude))
-        .toList();
-
     final canStart =
         mission.status == MissionStatus.planned ||
         mission.status == MissionStatus.aborted;
@@ -241,115 +235,7 @@ class _MissionDetailsPageState extends ConsumerState<MissionDetailsPage> {
 
                 const SizedBox(height: 16),
 
-                // ── Mapa ──────────────────────────────────────────────────────
-                _sectionLabel('Rota planejada'),
-                const SizedBox(height: 8),
-
-                if (points.isNotEmpty)
-                  Container(
-                    height: 300,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFFDDE4DD)),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(13),
-                      child: Stack(
-                        children: [
-                          FlutterMap(
-                            options: MapOptions(
-                              initialCenter: points.first,
-                              initialZoom: 15,
-                              initialCameraFit: points.length > 1
-                                  ? CameraFit.bounds(
-                                      bounds: LatLngBounds.fromPoints(points),
-                                      padding: const EdgeInsets.all(36),
-                                    )
-                                  : null,
-                            ),
-                            children: [
-                              TileLayer(
-                                urlTemplate: _isSatellite
-                                    ? 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'
-                                    : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                userAgentPackageName:
-                                    'nutrinitro.com.nutrinitro',
-                              ),
-                              PolylineLayer(
-                                polylines: [
-                                  Polyline(
-                                    points: points,
-                                    strokeWidth: 2.5,
-                                    color:
-                                        AppColors.green.withValues(alpha: 0.9),
-                                  ),
-                                ],
-                              ),
-                              MarkerLayer(
-                                markers:
-                                    mission.waypoints.asMap().entries.map((e) {
-                                  final index = e.key;
-                                  final wp = e.value;
-                                  return Marker(
-                                    point: LatLng(wp.latitude, wp.longitude),
-                                    width: 30,
-                                    height: 30,
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: AppColors.green,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: AppColors.white,
-                                          width: 2,
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black
-                                                .withValues(alpha: 0.25),
-                                            blurRadius: 3,
-                                          ),
-                                        ],
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          '${index + 1}',
-                                          style: const TextStyle(
-                                            color: AppColors.white,
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
-                            ],
-                          ),
-                          Positioned(
-                            bottom: 12,
-                            right: 12,
-                            child: FloatingActionButton.small(
-                              heroTag: 'mission_details_satellite',
-                              onPressed: () =>
-                                  setState(() => _isSatellite = !_isSatellite),
-                              backgroundColor: AppColors.white,
-                              foregroundColor: _isSatellite
-                                  ? AppColors.green
-                                  : AppColors.grayMedium,
-                              elevation: 2,
-                              child: Icon(
-                                _isSatellite
-                                    ? Icons.map_outlined
-                                    : Icons.satellite_alt_outlined,
-                                size: 18,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                _MissionMapCard(mission: mission),
 
                 const SizedBox(height: 16),
 
@@ -468,7 +354,7 @@ class _MissionDetailsPageState extends ConsumerState<MissionDetailsPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
@@ -515,5 +401,323 @@ class _MissionDetailsPageState extends ConsumerState<MissionDetailsPage> {
       case MissionStatus.aborted:
         return AppColors.tomato;
     }
+  }
+}
+
+class _MissionMapCard extends StatefulWidget {
+  final MissionModel mission;
+
+  const _MissionMapCard({required this.mission});
+
+  @override
+  State<_MissionMapCard> createState() => _MissionMapCardState();
+}
+
+class _MissionMapCardState extends State<_MissionMapCard> {
+  bool _isSatellite = false;
+  int? _selectedIndex;
+  late final MapController _mapController;
+
+  @override
+  void initState() {
+    super.initState();
+    _mapController = MapController();
+  }
+
+  @override
+  void dispose() {
+    _mapController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final waypoints = widget.mission.waypoints;
+    if (waypoints.isEmpty) return const SizedBox.shrink();
+
+    final points =
+        waypoints.map((w) => LatLng(w.latitude, w.longitude)).toList();
+
+    double lat = 0, lng = 0;
+    for (final p in points) {
+      lat += p.latitude;
+      lng += p.longitude;
+    }
+    final center = LatLng(lat / points.length, lng / points.length);
+
+    final selectedWp =
+        _selectedIndex != null ? waypoints[_selectedIndex!] : null;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFDDE4DD)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.route_outlined,
+                      size: 18,
+                      color: AppColors.greenDark,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Rota planejada',
+                      style: AppText.medium.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.navy,
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  '${waypoints.length} waypoints',
+                  style: AppText.small.copyWith(
+                    color: AppColors.grayMedium,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            height: 260,
+            child: ClipRRect(
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(13),
+                bottomRight: Radius.circular(13),
+              ),
+              child: Stack(
+                children: [
+                  FlutterMap(
+                    mapController: _mapController,
+                    options: MapOptions(
+                      initialCenter: points.first,
+                      initialZoom: 15,
+                      initialCameraFit: points.length > 1
+                          ? CameraFit.bounds(
+                              bounds: LatLngBounds.fromPoints(points),
+                              padding: const EdgeInsets.all(36),
+                            )
+                          : null,
+                      minZoom: 3,
+                      maxZoom: 22,
+                    ),
+                    children: [
+                      TileLayer(
+                        urlTemplate: _isSatellite
+                            ? 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'
+                            : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        userAgentPackageName: 'nutrinitro.com.nutrinitro',
+                      ),
+                      PolylineLayer(
+                        polylines: [
+                          Polyline(
+                            points: points,
+                            strokeWidth: 2.5,
+                            color: AppColors.green.withValues(alpha: 0.9),
+                          ),
+                        ],
+                      ),
+                      MarkerLayer(
+                        markers: waypoints.asMap().entries.map((e) {
+                          final i = e.key;
+                          final wp = e.value;
+                          final isSelected = _selectedIndex == i;
+                          return Marker(
+                            point: LatLng(wp.latitude, wp.longitude),
+                            width: 32,
+                            height: 32,
+                            child: GestureDetector(
+                              onTap: () => setState(() {
+                                _selectedIndex =
+                                    _selectedIndex == i ? null : i;
+                              }),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? AppColors.greenDark
+                                      : AppColors.green,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppColors.white,
+                                    width: isSelected ? 3 : 2,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black
+                                          .withValues(alpha: 0.25),
+                                      blurRadius: 3,
+                                    ),
+                                  ],
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    '${i + 1}',
+                                    style: const TextStyle(
+                                      color: AppColors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                  Positioned(
+                    bottom: selectedWp != null ? 72 : 12,
+                    right: 12,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        FloatingActionButton.small(
+                          heroTag: 'mission_details_satellite',
+                          onPressed: () =>
+                              setState(() => _isSatellite = !_isSatellite),
+                          backgroundColor: AppColors.white,
+                          foregroundColor: _isSatellite
+                              ? AppColors.green
+                              : AppColors.grayMedium,
+                          elevation: 2,
+                          child: Icon(
+                            _isSatellite
+                                ? Icons.map_outlined
+                                : Icons.satellite_alt_outlined,
+                            size: 18,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        FloatingActionButton.small(
+                          heroTag: 'mission_details_recenter',
+                          onPressed: () {
+                            if (points.length > 1) {
+                              _mapController.fitCamera(
+                                CameraFit.bounds(
+                                  bounds: LatLngBounds.fromPoints(points),
+                                  padding: const EdgeInsets.all(36),
+                                ),
+                              );
+                            } else {
+                              _mapController.move(center, 15);
+                            }
+                          },
+                          backgroundColor: AppColors.white,
+                          foregroundColor: AppColors.green,
+                          elevation: 2,
+                          child: const Icon(Icons.my_location, size: 18),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (selectedWp != null)
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.white.withValues(alpha: 0.95),
+                          border: const Border(
+                            top: BorderSide(color: Color(0xFFDDE4DD)),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 26,
+                              height: 26,
+                              decoration: const BoxDecoration(
+                                color: AppColors.green,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '${_selectedIndex! + 1}',
+                                  style: const TextStyle(
+                                    color: AppColors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  _infoChip(
+                                    Icons.height,
+                                    '${selectedWp.altitude.toStringAsFixed(0)}m',
+                                  ),
+                                  const SizedBox(width: 12),
+                                  _infoChip(
+                                    Icons.speed,
+                                    '${selectedWp.speed.toStringAsFixed(1)}m/s',
+                                  ),
+                                  const SizedBox(width: 12),
+                                  _infoChip(
+                                    Icons.camera_alt_outlined,
+                                    selectedWp.capturePhoto
+                                        ? 'Foto'
+                                        : 'Sem foto',
+                                    color: selectedWp.capturePhoto
+                                        ? AppColors.green
+                                        : AppColors.grayMedium,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () =>
+                                  setState(() => _selectedIndex = null),
+                              child: const Icon(
+                                Icons.close,
+                                size: 18,
+                                color: AppColors.grayMedium,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _infoChip(
+    IconData icon,
+    String label, {
+    Color color = AppColors.navy,
+  }) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 13, color: color),
+        const SizedBox(width: 3),
+        Text(label, style: AppText.small.copyWith(color: color, fontSize: 12)),
+      ],
+    );
   }
 }
