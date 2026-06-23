@@ -40,6 +40,14 @@ class DroneMediaViewModel extends _$DroneMediaViewModel {
     };
 
     final missionMap = {for (final m in missions) m.id: m.title};
+
+    final missionIdsWithImages =
+        images.map((img) => img.missionId).toSet();
+    final availableMissions = missions
+        .where((m) => missionIdsWithImages.contains(m.id))
+        .map((m) => MediaMissionOption(id: m.id!, title: m.title))
+        .toList();
+
     final entries = images
         .map(
           (img) => DroneImageEntry(
@@ -49,11 +57,18 @@ class DroneMediaViewModel extends _$DroneMediaViewModel {
           ),
         )
         .toList();
-    state = state.copyWith(isLoading: false, allEntries: entries);
+    state = state.copyWith(
+      isLoading: false,
+      allEntries: entries,
+      availableMissions: availableMissions,
+    );
   }
 
   void updateSearch(String query) =>
       state = state.copyWith(searchQuery: query);
+
+  void setMissionFilter(int? missionId) =>
+      state = state.copyWith(missionIdFilter: missionId);
 
   void setLinkedFilter(bool? value) =>
       state = state.copyWith(linkedFilter: value);
@@ -67,6 +82,7 @@ class DroneMediaViewModel extends _$DroneMediaViewModel {
 
   void clearFilters() => state = state.copyWith(
         searchQuery: '',
+        missionIdFilter: null,
         linkedFilter: null,
         dateFrom: null,
         dateTo: null,

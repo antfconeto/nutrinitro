@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/services.dart';
 import 'package:nutrinitro/src/core/const/drone/drone_connection_state.dart';
 import 'package:nutrinitro/src/core/const/drone/gps_signal_level.dart';
+import 'package:nutrinitro/src/core/const/resource.dart';
 import 'package:nutrinitro/src/data/models/drone/camera_parameters.dart';
 import 'package:nutrinitro/src/data/models/drone/mission_model.dart';
 import 'package:nutrinitro/src/data/models/drone/telemetry_data.dart';
@@ -13,6 +14,16 @@ import 'package:path_provider/path_provider.dart';
 
 class MockDroneService implements IDroneService {
   final _random = Random();
+
+  static const _mockPhotos = [
+    R.ASSETS_MOCK_DRONE_18_05_2026_P07_BLOCO2_CHLO36_90_JPG,
+    R.ASSETS_MOCK_DRONE_21_05_2026_P04_BLOCO1_CHLO34_43_JPG,
+    R.ASSETS_MOCK_DRONE_21_05_2026_P07_BLOCO2_CHLO34_49_JPG,
+    R.ASSETS_MOCK_DRONE_21_05_2026_P12_BLOCO3_CHLO33_39_JPG,
+    R.ASSETS_MOCK_DRONE_26_05_2026_P04_BLOCO1_CHLO33_19_JPG,
+    R.ASSETS_MOCK_DRONE_26_05_2026_P07_BLOCO2_CHLO30_34_JPG,
+    R.ASSETS_MOCK_DRONE_26_05_2026_P12_BLOCO3_CHLO30_79_JPG,
+  ];
 
   // ─── State ──────────────────────────────────────────────────────────────────
 
@@ -39,7 +50,6 @@ class MockDroneService implements IDroneService {
   final _photoCtrl = StreamController<String>.broadcast();
 
   Timer? _telemetryTimer;
-  Timer? _missionTimer;
   Timer? _intervalTimer;
   Timer? _batteryTimer;
 
@@ -186,32 +196,59 @@ class MockDroneService implements IDroneService {
   void _executeMission() {
     if (_currentMission == null) return;
     _missionRunning = true;
+    _runNextWaypoint();
+  }
+
+  Future<void> _runNextWaypoint() async {
+    if (!_missionRunning || _currentMission == null) return;
     final waypoints = _currentMission!.waypoints;
 
-    _missionTimer = Timer.periodic(const Duration(seconds: 3), (timer) async {
-      if (!_missionRunning || _currentWaypointIndex >= waypoints.length) {
-        timer.cancel();
-        _missionRunning = false;
-        if (_currentWaypointIndex >= waypoints.length) await land();
-        return;
-      }
+    if (_currentWaypointIndex >= waypoints.length) {
+      _missionRunning = false;
+      await land();
+      return;
+    }
 
-      final wp = waypoints[_currentWaypointIndex];
-      _lat = wp.latitude;
-      _lng = wp.longitude;
-      _alt = wp.altitude;
+    final wp = waypoints[_currentWaypointIndex];
 
-      _missionCtrl.add(_currentWaypointIndex);
+    // Animate drone flying toward the waypoint
+    await _animatePosition(_lat, _lng, wp.latitude, wp.longitude, wp.altitude);
+    if (!_missionRunning) return;
 
-      if (wp.capturePhoto) await capturePhoto();
+    _missionCtrl.add(_currentWaypointIndex);
+    if (wp.capturePhoto) await capturePhoto();
 
-      _currentWaypointIndex++;
-    });
+    _currentWaypointIndex++;
+    await Future.delayed(const Duration(milliseconds: 400));
+    _runNextWaypoint();
+  }
+
+  Future<void> _animatePosition(
+    double fromLat,
+    double fromLng,
+    double toLat,
+    double toLng,
+    double toAlt,
+  ) async {
+    const steps = 25;
+    const stepDelay = Duration(milliseconds: 120);
+    final dLat = (toLat - fromLat) / steps;
+    final dLng = (toLng - fromLng) / steps;
+    final dAlt = (toAlt - _alt) / steps;
+    for (int i = 0; i < steps; i++) {
+      if (!_missionRunning) return;
+      _lat += dLat;
+      _lng += dLng;
+      _alt += dAlt;
+      await Future.delayed(stepDelay);
+    }
+    _lat = toLat;
+    _lng = toLng;
+    _alt = toAlt;
   }
 
   @override
   Future<void> abortMission() async {
-    _missionTimer?.cancel();
     _missionRunning = false;
     _currentWaypointIndex = 0;
     await returnToHome();
@@ -228,12 +265,13 @@ class MockDroneService implements IDroneService {
     final missionId = _currentMission?.id;
     if (missionId == null) return;
     try {
-      final bytes = await rootBundle.load('assets/images/crops/corn.png');
+      final assetPath = _mockPhotos[_random.nextInt(_mockPhotos.length)];
+      final bytes = await rootBundle.load(assetPath);
       final base = await getApplicationDocumentsDirectory();
       final dir = Directory(p.join(base.path, 'missions', missionId.toString()));
       await dir.create(recursive: true);
       final file = File(
-        p.join(dir.path, 'mock_${DateTime.now().millisecondsSinceEpoch}.png'),
+        p.join(dir.path, 'mock_${DateTime.now().millisecondsSinceEpoch}.jpg'),
       );
       await file.writeAsBytes(bytes.buffer.asUint8List());
       _photoCtrl.add(file.path);
@@ -302,7 +340,6 @@ class MockDroneService implements IDroneService {
 
   void _stopAll() {
     _telemetryTimer?.cancel();
-    _missionTimer?.cancel();
     _intervalTimer?.cancel();
     _batteryTimer?.cancel();
   }

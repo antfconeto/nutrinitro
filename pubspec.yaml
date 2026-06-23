@@ -98,6 +98,7 @@ flutter:
         - assets/images/
         - assets/images/crops/
         - assets/recipes/
+        - assets/mock/drone/
         - .env
 
     # An image asset can refer to one or more resolution-specific "variants", see

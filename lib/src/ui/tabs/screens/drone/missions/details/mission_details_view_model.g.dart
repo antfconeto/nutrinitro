@@ -42,7 +42,7 @@ final class MissionDetailsViewModelProvider
 }
 
 String _$missionDetailsViewModelHash() =>
-    r'a0b8f93553af1765b54fbb6b15e258c4dd958226';
+    r'efdcabcd25011d10d8561fcdca44e6c93fe30443';
 
 abstract class _$MissionDetailsViewModel
     extends $Notifier<MissionDetailsState> {

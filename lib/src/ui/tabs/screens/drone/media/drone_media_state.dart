@@ -16,6 +16,13 @@ enum MediaSortOrder {
   }
 }
 
+class MediaMissionOption {
+  final int id;
+  final String title;
+
+  const MediaMissionOption({required this.id, required this.title});
+}
+
 class DroneImageEntry {
   final DroneImageModel image;
   final String missionTitle;
@@ -26,7 +33,9 @@ class DroneImageEntry {
 class DroneMediaState extends Equatable {
   final bool isLoading;
   final List<DroneImageEntry> allEntries;
+  final List<MediaMissionOption> availableMissions;
   final String searchQuery;
+  final int? missionIdFilter;
   // null = todas, true = vinculadas, false = não vinculadas
   final bool? linkedFilter;
   final DateTime? dateFrom;
@@ -37,7 +46,9 @@ class DroneMediaState extends Equatable {
   const DroneMediaState({
     this.isLoading = false,
     this.allEntries = const [],
+    this.availableMissions = const [],
     this.searchQuery = '',
+    this.missionIdFilter,
     this.linkedFilter,
     this.dateFrom,
     this.dateTo,
@@ -48,6 +59,10 @@ class DroneMediaState extends Equatable {
   List<DroneImageEntry> get entries {
     var result = allEntries;
 
+    if (missionIdFilter != null) {
+      result =
+          result.where((e) => e.image.missionId == missionIdFilter).toList();
+    }
     if (linkedFilter != null) {
       result =
           result.where((e) => e.image.isLinked == linkedFilter).toList();
@@ -82,21 +97,33 @@ class DroneMediaState extends Equatable {
   }
 
   bool get hasActiveFilters =>
+      missionIdFilter != null ||
       linkedFilter != null ||
       dateFrom != null ||
       dateTo != null ||
       sortOrder != MediaSortOrder.newestFirst;
 
   int get activeFilterCount =>
+      (missionIdFilter != null ? 1 : 0) +
       (linkedFilter != null ? 1 : 0) +
       (dateFrom != null ? 1 : 0) +
       (dateTo != null ? 1 : 0) +
       (sortOrder != MediaSortOrder.newestFirst ? 1 : 0);
 
+  String? get missionFilterLabel =>
+      missionIdFilter == null
+          ? null
+          : availableMissions
+                .where((m) => m.id == missionIdFilter)
+                .map((m) => m.title)
+                .firstOrNull;
+
   DroneMediaState copyWith({
     bool? isLoading,
     List<DroneImageEntry>? allEntries,
+    List<MediaMissionOption>? availableMissions,
     String? searchQuery,
+    Object? missionIdFilter = _sentinel,
     Object? linkedFilter = _sentinel,
     Object? dateFrom = _sentinel,
     Object? dateTo = _sentinel,
@@ -107,7 +134,11 @@ class DroneMediaState extends Equatable {
     return DroneMediaState(
       isLoading: isLoading ?? this.isLoading,
       allEntries: allEntries ?? this.allEntries,
+      availableMissions: availableMissions ?? this.availableMissions,
       searchQuery: searchQuery ?? this.searchQuery,
+      missionIdFilter: missionIdFilter == _sentinel
+          ? this.missionIdFilter
+          : missionIdFilter as int?,
       linkedFilter:
           linkedFilter == _sentinel ? this.linkedFilter : linkedFilter as bool?,
       dateFrom: dateFrom == _sentinel ? this.dateFrom : dateFrom as DateTime?,
@@ -121,7 +152,9 @@ class DroneMediaState extends Equatable {
   List<Object?> get props => [
         isLoading,
         allEntries,
+        availableMissions,
         searchQuery,
+        missionIdFilter,
         linkedFilter,
         dateFrom,
         dateTo,

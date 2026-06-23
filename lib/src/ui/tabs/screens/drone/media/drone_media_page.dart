@@ -173,6 +173,16 @@ class _DroneMediaPageState extends ConsumerState<DroneMediaPage> {
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
+                      if (state.missionFilterLabel != null)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: _ActiveChip(
+                            label: state.missionFilterLabel!,
+                            onRemove: () => ref
+                                .read(droneMediaViewModelProvider.notifier)
+                                .setMissionFilter(null),
+                          ),
+                        ),
                       if (state.linkedFilter != null)
                         Padding(
                           padding: const EdgeInsets.only(right: 6),
@@ -276,71 +286,85 @@ class _DroneMediaPageState extends ConsumerState<DroneMediaPage> {
         mainAxisSpacing: 6,
       ),
       itemCount: entries.length,
-      itemBuilder: (context, index) => _buildTile(entries[index]),
+      itemBuilder: (context, index) => _buildTile(entries[index], entries, index),
     );
   }
 
-  Widget _buildTile(DroneImageEntry entry) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.file(
-            File(entry.image.localPath),
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Container(
-              color: AppColors.white,
-              child: const Icon(
-                Icons.image_not_supported_outlined,
-                color: AppColors.grayMedium,
-                size: 32,
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
-              color: Colors.black.withValues(alpha: 0.55),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    entry.missionTitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Text(
-                    DateFormat('dd/MM/yyyy').format(entry.image.datetime),
-                    style: const TextStyle(color: Colors.white70, fontSize: 8),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (entry.image.isLinked)
-            Positioned(
-              top: 4,
-              right: 4,
-              child: Container(
-                padding: const EdgeInsets.all(3),
-                decoration: const BoxDecoration(
-                  color: AppColors.green,
-                  shape: BoxShape.circle,
+  Widget _buildTile(DroneImageEntry entry, List<DroneImageEntry> allVisible, int index) {
+    return GestureDetector(
+      onTap: () => _openViewer(allVisible, index),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.file(
+              File(entry.image.localPath),
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                color: AppColors.white,
+                child: const Icon(
+                  Icons.image_not_supported_outlined,
+                  color: AppColors.grayMedium,
+                  size: 32,
                 ),
-                child: const Icon(Icons.check, color: AppColors.white, size: 10),
               ),
             ),
-        ],
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
+                color: Colors.black.withValues(alpha: 0.55),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      entry.missionTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      DateFormat('dd/MM/yyyy').format(entry.image.datetime),
+                      style: const TextStyle(color: Colors.white70, fontSize: 8),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (entry.image.isLinked)
+              Positioned(
+                top: 4,
+                right: 4,
+                child: Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: const BoxDecoration(
+                    color: AppColors.green,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.check, color: AppColors.white, size: 10),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openViewer(List<DroneImageEntry> entries, int initialIndex) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _MediaImageViewerPage(
+          entries: entries,
+          initialIndex: initialIndex,
+        ),
       ),
     );
   }
@@ -470,6 +494,37 @@ class _MediaFilterSheet extends ConsumerWidget {
                 ),
             ],
           ),
+          // ── Missão ──────────────────────────────────────────────────────────
+          if (state.availableMissions.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            Text(
+              'Missão',
+              style: AppText.body.copyWith(
+                color: AppColors.grayMedium,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                _FilterChip(
+                  label: 'Todas',
+                  selected: state.missionIdFilter == null,
+                  onTap: () => vm.setMissionFilter(null),
+                ),
+                ...state.availableMissions.map(
+                  (m) => _FilterChip(
+                    label: m.title,
+                    selected: state.missionIdFilter == m.id,
+                    onTap: () => vm.setMissionFilter(m.id),
+                  ),
+                ),
+              ],
+            ),
+          ],
+
           const SizedBox(height: 20),
           // ── Vínculo ─────────────────────────────────────────────────────────
           Text(
@@ -706,6 +761,96 @@ class _DateField extends StatelessWidget {
                 ),
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Full-screen image viewer ─────────────────────────────────────────────────
+
+class _MediaImageViewerPage extends StatefulWidget {
+  final List<DroneImageEntry> entries;
+  final int initialIndex;
+
+  const _MediaImageViewerPage({
+    required this.entries,
+    required this.initialIndex,
+  });
+
+  @override
+  State<_MediaImageViewerPage> createState() => _MediaImageViewerPageState();
+}
+
+class _MediaImageViewerPageState extends State<_MediaImageViewerPage> {
+  late final PageController _pageController;
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    _pageController = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final entry = widget.entries[_currentIndex];
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${_currentIndex + 1} / ${widget.entries.length}',
+              style: const TextStyle(fontSize: 15, color: Colors.white),
+            ),
+            Text(
+              entry.missionTitle,
+              style: const TextStyle(fontSize: 11, color: Colors.white60),
+            ),
+          ],
+        ),
+      ),
+      body: PageView.builder(
+        controller: _pageController,
+        itemCount: widget.entries.length,
+        onPageChanged: (i) => setState(() => _currentIndex = i),
+        itemBuilder: (context, i) {
+          final e = widget.entries[i];
+          return InteractiveViewer(
+            minScale: 0.5,
+            maxScale: 4.0,
+            child: Center(
+              child: Image.file(
+                File(e.image.localPath),
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const Icon(
+                  Icons.broken_image_outlined,
+                  color: Colors.white54,
+                  size: 64,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+      bottomNavigationBar: Container(
+        color: Colors.black,
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        child: Text(
+          DateFormat('dd/MM/yyyy HH:mm').format(entry.image.datetime),
+          style: const TextStyle(color: Colors.white54, fontSize: 12),
+          textAlign: TextAlign.center,
         ),
       ),
     );

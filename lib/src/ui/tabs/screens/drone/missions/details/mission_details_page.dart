@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +9,7 @@ import 'package:nutrinitro/src/core/const/drone/drone_connection_state.dart';
 import 'package:nutrinitro/src/core/const/drone/mission_status.dart';
 import 'package:nutrinitro/src/core/themes/app_colors.dart';
 import 'package:nutrinitro/src/core/themes/app_text.dart';
+import 'package:nutrinitro/src/data/models/drone/drone_image_model.dart';
 import 'package:nutrinitro/src/data/models/drone/mission_model.dart';
 import 'package:nutrinitro/src/data/services/services_provider.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/drone/missions/details/mission_details_state.dart';
@@ -383,6 +386,46 @@ class _MissionDetailsPageState extends ConsumerState<MissionDetailsPage> {
 
                 _MissionMapCard(mission: mission),
 
+                // ── Imagens capturadas (missão concluída) ─────────────────
+                if (mission.status == MissionStatus.completed &&
+                    state.images.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  _sectionLabel('Imagens capturadas (${state.images.length})'),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 120,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: state.images.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      itemBuilder: (context, i) {
+                        final img = state.images[i];
+                        return GestureDetector(
+                          onTap: () => _openImageViewer(context, state.images, i),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Image.file(
+                              File(img.localPath),
+                              width: 120,
+                              height: 120,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                width: 120,
+                                height: 120,
+                                color: AppColors.grayLight,
+                                child: const Icon(
+                                  Icons.broken_image_outlined,
+                                  color: AppColors.grayMedium,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+
                 const SizedBox(height: 16),
 
                 // ── Lista waypoints ─────────────────────────────────────────
@@ -458,7 +501,7 @@ class _MissionDetailsPageState extends ConsumerState<MissionDetailsPage> {
           ),
         ),
 
-        // ── Botão iniciar ─────────────────────────────────────────────────
+        // ── Botões de ação ─────────────────────────────────────────────────
         if (canStart)
           SafeArea(
             child: Padding(
@@ -510,7 +553,101 @@ class _MissionDetailsPageState extends ConsumerState<MissionDetailsPage> {
               ),
             ),
           ),
+
+        if (mission.status == MissionStatus.completed && state.images.isNotEmpty)
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _showAnalysisPlaceholder(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.green,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
+                      icon: const Icon(
+                        Icons.science_outlined,
+                        color: AppColors.white,
+                      ),
+                      label: const Text(
+                        'Fazer Análise',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).pushNamedAndRemoveUntil(
+                          '/tabs',
+                          (route) => false,
+                          arguments: 2,
+                        );
+                      },
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFFDDE4DD)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      icon: Icon(
+                        Icons.photo_library_outlined,
+                        color: AppColors.navy,
+                        size: 18,
+                      ),
+                      label: Text(
+                        'Ver em Mídia',
+                        style: AppText.medium.copyWith(
+                          color: AppColors.navy,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
       ],
+    );
+  }
+
+  void _showAnalysisPlaceholder(BuildContext context) {
+    showTopSnackBar(
+      Overlay.of(context),
+      const CustomSnackBar.success(
+        message: 'Análise com imagens de drone será implementada em breve.',
+      ),
+    );
+  }
+
+  void _openImageViewer(
+    BuildContext context,
+    List<DroneImageModel> images,
+    int initialIndex,
+  ) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _DroneImageViewerPage(
+          images: images,
+          initialIndex: initialIndex,
+        ),
+      ),
     );
   }
 
@@ -883,6 +1020,77 @@ class _MissionMapCardState extends State<_MissionMapCard> {
         const SizedBox(width: 3),
         Text(label, style: AppText.small.copyWith(color: color, fontSize: 12)),
       ],
+    );
+  }
+}
+
+// ─── Full-screen image viewer ─────────────────────────────────────────────────
+
+class _DroneImageViewerPage extends StatefulWidget {
+  final List<DroneImageModel> images;
+  final int initialIndex;
+
+  const _DroneImageViewerPage({
+    required this.images,
+    required this.initialIndex,
+  });
+
+  @override
+  State<_DroneImageViewerPage> createState() => _DroneImageViewerPageState();
+}
+
+class _DroneImageViewerPageState extends State<_DroneImageViewerPage> {
+  late final PageController _pageController;
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    _pageController = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        title: Text(
+          '${_currentIndex + 1} / ${widget.images.length}',
+          style: const TextStyle(fontSize: 15, color: Colors.white),
+        ),
+      ),
+      body: PageView.builder(
+        controller: _pageController,
+        itemCount: widget.images.length,
+        onPageChanged: (i) => setState(() => _currentIndex = i),
+        itemBuilder: (context, i) {
+          final img = widget.images[i];
+          return InteractiveViewer(
+            minScale: 0.5,
+            maxScale: 4.0,
+            child: Center(
+              child: Image.file(
+                File(img.localPath),
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const Icon(
+                  Icons.broken_image_outlined,
+                  color: Colors.white54,
+                  size: 64,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }

@@ -261,29 +261,32 @@ class _MissionMonitorPageState extends ConsumerState<MissionMonitorPage> {
       final wp = e.value;
       final isDone = i < currentIndex;
       final isCurrent = i == currentIndex;
+
+      final color = isDone
+          ? const Color(0xFF9E9E9E) // cinza — já visitado
+          : isCurrent
+          ? AppColors.green
+          : AppColors.navy.withValues(alpha: 0.7);
+
       return Marker(
         point: LatLng(wp.latitude, wp.longitude),
-        width: 28,
-        height: 28,
+        width: isCurrent ? 32 : 26,
+        height: isCurrent ? 32 : 26,
         child: Container(
           decoration: BoxDecoration(
-            color: isDone
-                ? AppColors.greenDark
-                : isCurrent
-                ? AppColors.green
-                : AppColors.navy.withValues(alpha: 0.6),
+            color: color,
             shape: BoxShape.circle,
             border: Border.all(
-              color: AppColors.white,
+              color: isDone ? Colors.white38 : AppColors.white,
               width: isCurrent ? 2.5 : 1.5,
             ),
           ),
           child: Center(
             child: Text(
               '${i + 1}',
-              style: const TextStyle(
-                color: AppColors.white,
-                fontSize: 10,
+              style: TextStyle(
+                color: isDone ? Colors.white70 : AppColors.white,
+                fontSize: 9,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -752,14 +755,12 @@ class _CompletionSheet extends StatelessWidget {
             height: 50,
             child: ElevatedButton.icon(
               onPressed: () {
-                Navigator.of(context).pop(); // close sheet
-                Navigator.of(context).pushNamedAndRemoveUntil(
-                  '/tabs',
-                  (route) => false,
-                  arguments: 2,
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
+                Navigator.of(context).pushNamed(
+                  '/drone/mission/details',
+                  arguments: missionId,
                 );
-                // Navigate to media filtered by this mission
-                // For now, just goes to drone tab; user can open media from there
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.green,
@@ -768,9 +769,9 @@ class _CompletionSheet extends StatelessWidget {
                 ),
                 elevation: 0,
               ),
-              icon: const Icon(Icons.photo_library_outlined, color: AppColors.white),
+              icon: const Icon(Icons.science_outlined, color: AppColors.white),
               label: const Text(
-                'Ver Imagens em Mídia',
+                'Ver resultados e fazer análise',
                 style: TextStyle(
                   color: AppColors.white,
                   fontSize: 15,
@@ -783,10 +784,14 @@ class _CompletionSheet extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             height: 48,
-            child: OutlinedButton(
+            child: OutlinedButton.icon(
               onPressed: () {
-                Navigator.of(context).pop(); // close sheet
-                Navigator.of(context).pop(); // close monitor page
+                Navigator.of(context).pop();
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  '/tabs',
+                  (route) => false,
+                  arguments: 2,
+                );
               },
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: Color(0xFFDDE4DD)),
@@ -794,10 +799,29 @@ class _CompletionSheet extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: Text(
-                'Fechar',
-                style: AppText.medium.copyWith(color: AppColors.grayMedium),
+              icon: Icon(
+                Icons.photo_library_outlined,
+                color: AppColors.navy,
+                size: 18,
               ),
+              label: Text(
+                'Ver em Mídia',
+                style: AppText.medium.copyWith(
+                  color: AppColors.navy,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).pop();
+            },
+            child: Text(
+              'Fechar',
+              style: AppText.medium.copyWith(color: AppColors.grayMedium),
             ),
           ),
         ],

@@ -5,6 +5,7 @@ import 'package:nutrinitro/src/data/services/services_provider.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/drone/missions/details/mission_details_state.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+
 part 'mission_details_view_model.g.dart';
 
 @riverpod
@@ -21,6 +22,13 @@ class MissionDetailsViewModel extends _$MissionDetailsViewModel {
     switch (result) {
       case Success(value: final mission):
         state = state.copyWith(isLoading: false, mission: mission);
+        if (mission.status == MissionStatus.completed) {
+          final imageRepo = await ref.read(droneImageRepositoryProvider.future);
+          final imagesResult = await imageRepo.findBy('mission_id', missionId);
+          if (imagesResult case Success(value: final images)) {
+            state = state.copyWith(images: images);
+          }
+        }
       case Failure(:final error):
         state = state.copyWith(
           isLoading: false,
