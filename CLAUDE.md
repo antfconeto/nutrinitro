@@ -197,11 +197,13 @@ Rotas nomeadas definidas em `app_widget.dart`:
 /tabs                     → TabsPage (arg: int — índice da aba; 0=Dashboard, 1=Analysis, 2=Drone)
 /analysis/create          → AnalysisCreatePage
 /analysis/details         → AnalysisDetailsPage (arg: int analysisId)
-/drone/mission/create     → MissionCreatePage
+/drone/mission/create     → MissionCreatePage (arg opcional: MissionModel — modo edição)
 /drone/mission/details    → MissionDetailsPage (arg: int missionId)
 ```
 
 Argumentos são passados via `ModalRoute.of(context)?.settings.arguments`. Para navegação programática fora do contexto de widget, usar `appNavigatorKey` (definido em `app_widget.dart`).
+
+**Padrão criar/editar com a mesma página:** `MissionCreatePage` aceita `MissionModel? initialMission`. Quando fornecido, pré-popula campos e chama `updateWithWaypoints` no submit em vez de `create`. O VM expõe `initFromMission(mission)` chamado via `addPostFrameCallback` no `initState`. Após retornar da edição, a página de detalhes recarrega com `load(missionId)` no `.then` do `pushNamed`.
 
 ---
 
@@ -214,6 +216,26 @@ Enums principais:
 - `DroneConnectionState` — `disconnected`, `connecting`, `connected`
 - `DroneGpsSignal` — `none`, `poor`, `ok`, `good`, `excellent`
 - `AnalysisStatus` — `pending`, `processing`, `completed`, `error`
+
+---
+
+## Filtros e ordenação
+
+Padrão aplicado em `AnalysisListPage`, `DroneMissionsPage` e `DroneMediaPage`.
+
+**UI:** filtro inline (nunca no AppBar) — row com `SingleChildScrollView` de chips ativos + botão de filtro com badge de contagem. Sheet de filtros abre via `showModalBottomSheet`.
+
+**Ordem das seções no sheet:** Status → Cultura (se aplicável) → Período → Ordenar por.
+
+**Período (date range):** campos `dateFrom` e `dateTo` opcionais. Sem `dateFrom` pega tudo antes de `dateTo`; sem `dateTo` pega tudo depois de `dateFrom`. Chips ativos mostram a data formatada; toque remove o filtro.
+
+**Análises:** filtros aplicados em SQL no repositório (`allPaginated`). `dateFrom` usa `>= inicio_do_dia`, `dateTo` usa `<= 23:59:59.999` do dia.
+
+**Missões / Mídia:** carregados de uma vez; filtros e ordenação aplicados in-memory em getters no state (`missions`, `entries`).
+
+**Sentinel para nullable em `copyWith`:** campos opcionais que precisam ser setados para `null` usam `const Object _sentinel = Object()` para distinguir "não fornecido" de "explicitamente null".
+
+**`StatefulBuilder` em bottom sheets:** usar quando há estado local no sheet (ex: switch de toggle). Nunca chamar o VM dentro do `setSheetState` — apenas atualizar a variável local; chamar o VM só no botão de salvar.
 
 ---
 
@@ -238,7 +260,9 @@ Código em **inglês**. UI (textos exibidos ao usuário) em **português (Brasil
 
 ## Mapas
 
-Widgets `TileLayer` (flutter_map) sempre incluem `userAgentPackageName`:
+Versão: `flutter_map: ^8.3.0` + `latlong2: ^0.9.1`.
+
+Widgets `TileLayer` sempre incluem `userAgentPackageName`:
 
 ```dart
 TileLayer(
@@ -246,6 +270,64 @@ TileLayer(
   userAgentPackageName: 'nutrinitro.com.nutrinitro',
 ),
 ```
+
+**URLs de tile:**
+- OSM (padrão): `https://tile.openstreetmap.org/{z}/{x}/{y}.png`
+- Satélite (Google Maps): `https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}`
+
+**Fit automático nos waypoints:**
+```dart
+CameraFit.bounds(
+  bounds: LatLngBounds.fromPoints(points),
+  padding: const EdgeInsets.all(36),
+)
+// Passe em MapOptions.initialCameraFit ou mapController.fitCamera(...)
+```
+
+**Converter posição de tela → LatLng** (para marcadores arrastáveis):
+```dart
+final box = _mapContainerKey.currentContext!.findRenderObject() as RenderBox;
+final local = box.globalToLocal(globalPosition);
+final latLng = _mapController.camera.offsetToCrs(local);
+// offsetToCrs recebe Offset relativo ao canto superior-esquerdo do widget FlutterMap
+```
+
+**Mapa não-interativo em cards de lista:** envolver `FlutterMap` em `IgnorePointer` — gestos passam para o `InkWell` do card pai.
+
+**Padrão de toggle satélite:** `FloatingActionButton.small` posicionado em `Positioned(bottom: 12, right: 12)` dentro de um `Stack` sobre o mapa. `heroTag` único obrigatório. Cor do ícone alterna entre `AppColors.green` (ativo) e `AppColors.grayMedium` (inativo).
+
+**Padrão de card de mapa interativo** (ver `_MissionMapCard`, `AnalysisMapCard`):
+- `StatefulWidget` com `late final MapController _mapController` (dispose no `dispose`)
+- `bool _isSatellite = false` e `int? _selectedIndex` gerenciados localmente
+- Layout: `Container` com header (ícone + título + contagem) → `SizedBox(height: N)` com `ClipRRect` → `Stack` com `FlutterMap` + FABs (`Column` satélite + recenter) + painel de info selecionado
+- FABs sobem (`bottom: 72`) quando painel de info está visível
+
+**Marcadores arrastáveis (drag-to-move):**
+```dart
+// 1. GlobalKey no container do mapa
+final GlobalKey _mapContainerKey = GlobalKey();
+Container(key: _mapContainerKey, ...)
+
+// 2. int? _draggingIndex no estado do widget
+
+// 3. Desabilitar interação do mapa durante drag
+interactionOptions: InteractionOptions(
+  flags: _draggingIndex != null
+      ? InteractiveFlag.none
+      : InteractiveFlag.drag | InteractiveFlag.pinchZoom | InteractiveFlag.doubleTapZoom,
+),
+
+// 4. GestureDetector no marcador
+onLongPressStart: (_) => setState(() => _draggingIndex = index),
+onLongPressMoveUpdate: (details) {
+  final box = _mapContainerKey.currentContext!.findRenderObject() as RenderBox;
+  final latLng = _mapController.camera.offsetToCrs(box.globalToLocal(details.globalPosition));
+  viewModel.moveWaypoint(index, latLng);
+},
+onLongPressEnd: (_) => setState(() => _draggingIndex = null),
+```
+
+**Inserir ponto entre dois waypoints:** renderizar `MarkerLayer` com marcadores de midpoint `(a+b)/2`, ocultos durante drag. Tap chama `insertWaypoint(afterIndex, midLatLng)` no VM.
 
 ---
 
@@ -274,8 +356,13 @@ flutter test
 
 **Pronto:**
 - Repositórios: `MissionRepository`, `WaypointRepository`, `DroneImageRepository`
+  - `MissionRepository.updateWithWaypoints(...)` — atualiza metadados + substitui todos os waypoints atomicamente
 - Serviços: `MockDroneService` (completo), `DjiDroneService` (scaffoldado)
 - Telas: Painel do drone, lista de missões, criar missão, detalhes da missão, mídia
+- Filtros com date range e ordenação em todas as listas (análises, missões, mídia)
+- `_MissionMapCard`: card interativo de rota nos detalhes da missão — marcadores numerados clicáveis, painel de info do waypoint selecionado, toggle satélite, recenter
+- Mapa de pré-visualização satélite não-interativo nos cards da lista de missões (160px)
+- `MissionCreatePage` com modo edição: `initialMission` pré-popula tudo; drag-to-move nos marcadores; inserir waypoint entre dois pontos via "+" no midpoint de cada segmento
 
 **Pendente:**
 - Integração real com SDK DJI (autenticação, conexão, upload de waypoints, telemetria real)
