@@ -96,6 +96,28 @@ class DroneMediaState extends Equatable {
     return result;
   }
 
+  /// Entries grouped by mission, in order of most recent image per group.
+  List<({int missionId, String missionTitle, List<DroneImageEntry> images})>
+  get missionGroups {
+    final filtered = entries;
+    final groupMap = <int, List<DroneImageEntry>>{};
+    final order = <int>[];
+    for (final e in filtered) {
+      if (!groupMap.containsKey(e.image.missionId)) {
+        groupMap[e.image.missionId] = [];
+        order.add(e.image.missionId);
+      }
+      groupMap[e.image.missionId]!.add(e);
+    }
+    return order
+        .map((id) => (
+              missionId: id,
+              missionTitle: groupMap[id]!.first.missionTitle,
+              images: groupMap[id]!,
+            ))
+        .toList();
+  }
+
   bool get hasActiveFilters =>
       missionIdFilter != null ||
       linkedFilter != null ||

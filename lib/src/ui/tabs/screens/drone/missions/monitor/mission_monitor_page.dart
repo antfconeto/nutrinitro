@@ -5,6 +5,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:nutrinitro/src/core/themes/app_colors.dart';
 import 'package:nutrinitro/src/core/themes/app_text.dart';
 import 'package:nutrinitro/src/data/models/drone/drone_waypoint_model.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/drone/drone_tab_provider.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/drone/missions/monitor/mission_monitor_state.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/drone/missions/monitor/mission_monitor_view_model.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
@@ -687,7 +688,7 @@ class _MetricItem extends StatelessWidget {
 
 // ─── Completion sheet ─────────────────────────────────────────────────────────
 
-class _CompletionSheet extends StatelessWidget {
+class _CompletionSheet extends ConsumerWidget {
   final int missionId;
   final String missionTitle;
   final int waypointCount;
@@ -701,7 +702,7 @@ class _CompletionSheet extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 36),
       child: Column(
@@ -786,6 +787,7 @@ class _CompletionSheet extends StatelessWidget {
             height: 48,
             child: OutlinedButton.icon(
               onPressed: () {
+                ref.read(droneTabIndexProvider.notifier).setTab(2);
                 Navigator.of(context).pop();
                 Navigator.of(context).pushNamedAndRemoveUntil(
                   '/tabs',

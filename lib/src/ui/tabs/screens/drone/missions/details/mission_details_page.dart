@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gal/gal.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:nutrinitro/src/core/const/drone/drone_connection_state.dart';
@@ -12,6 +13,7 @@ import 'package:nutrinitro/src/core/themes/app_text.dart';
 import 'package:nutrinitro/src/data/models/drone/drone_image_model.dart';
 import 'package:nutrinitro/src/data/models/drone/mission_model.dart';
 import 'package:nutrinitro/src/data/services/services_provider.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/drone/drone_tab_provider.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/drone/missions/details/mission_details_state.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/drone/missions/details/mission_details_view_model.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
@@ -592,7 +594,36 @@ class _MissionDetailsPageState extends ConsumerState<MissionDetailsPage> {
                     width: double.infinity,
                     height: 48,
                     child: OutlinedButton.icon(
+                      onPressed: () => _downloadAllImages(context, state.images),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFFDDE4DD)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      icon: Icon(
+                        Icons.download_outlined,
+                        color: AppColors.navy,
+                        size: 18,
+                      ),
+                      label: Text(
+                        'Baixar ${state.images.length} foto${state.images.length != 1 ? 's' : ''}',
+                        style: AppText.medium.copyWith(
+                          color: AppColors.navy,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: OutlinedButton.icon(
                       onPressed: () {
+                        ref
+                            .read(droneTabIndexProvider.notifier)
+                            .setTab(2);
                         Navigator.of(context).pushNamedAndRemoveUntil(
                           '/tabs',
                           (route) => false,
@@ -634,6 +665,33 @@ class _MissionDetailsPageState extends ConsumerState<MissionDetailsPage> {
         message: 'Análise com imagens de drone será implementada em breve.',
       ),
     );
+  }
+
+  Future<void> _downloadAllImages(
+    BuildContext context,
+    List<DroneImageModel> images,
+  ) async {
+    try {
+      for (final img in images) {
+        await Gal.putImage(img.localPath);
+      }
+      if (context.mounted) {
+        showTopSnackBar(
+          Overlay.of(context),
+          CustomSnackBar.success(
+            message:
+                '${images.length} foto${images.length != 1 ? 's' : ''} salva${images.length != 1 ? 's' : ''} na galeria.',
+          ),
+        );
+      }
+    } catch (_) {
+      if (context.mounted) {
+        showTopSnackBar(
+          Overlay.of(context),
+          const CustomSnackBar.error(message: 'Erro ao salvar na galeria.'),
+        );
+      }
+    }
   }
 
   void _openImageViewer(
@@ -1042,6 +1100,7 @@ class _DroneImageViewerPage extends StatefulWidget {
 class _DroneImageViewerPageState extends State<_DroneImageViewerPage> {
   late final PageController _pageController;
   late int _currentIndex;
+  bool _isDownloading = false;
 
   @override
   void initState() {
@@ -1056,6 +1115,29 @@ class _DroneImageViewerPageState extends State<_DroneImageViewerPage> {
     super.dispose();
   }
 
+  Future<void> _downloadCurrent() async {
+    if (_isDownloading) return;
+    setState(() => _isDownloading = true);
+    try {
+      await Gal.putImage(widget.images[_currentIndex].localPath);
+      if (mounted) {
+        showTopSnackBar(
+          Overlay.of(context),
+          const CustomSnackBar.success(message: 'Foto salva na galeria.'),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        showTopSnackBar(
+          Overlay.of(context),
+          const CustomSnackBar.error(message: 'Erro ao salvar na galeria.'),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isDownloading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1067,6 +1149,25 @@ class _DroneImageViewerPageState extends State<_DroneImageViewerPage> {
           '${_currentIndex + 1} / ${widget.images.length}',
           style: const TextStyle(fontSize: 15, color: Colors.white),
         ),
+        actions: [
+          _isDownloading
+              ? const Padding(
+                  padding: EdgeInsets.all(14),
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  ),
+                )
+              : IconButton(
+                  icon: const Icon(Icons.download_outlined, color: Colors.white),
+                  tooltip: 'Baixar foto',
+                  onPressed: _downloadCurrent,
+                ),
+        ],
       ),
       body: PageView.builder(
         controller: _pageController,

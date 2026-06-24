@@ -2,11 +2,14 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gal/gal.dart';
 import 'package:intl/intl.dart';
 import 'package:nutrinitro/src/core/themes/app_colors.dart';
 import 'package:nutrinitro/src/core/themes/app_text.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/drone/media/drone_media_state.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/drone/media/drone_media_view_model.dart';
+import 'package:top_snackbar_flutter/custom_snack_bar.dart';
+import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
 class DroneMediaPage extends ConsumerStatefulWidget {
   const DroneMediaPage({super.key});
@@ -36,17 +39,59 @@ class _DroneMediaPageState extends ConsumerState<DroneMediaPage> {
     );
   }
 
+  Future<void> _downloadImages(
+    BuildContext context,
+    List<DroneImageEntry> images,
+  ) async {
+    try {
+      for (final e in images) {
+        await Gal.putImage(e.image.localPath);
+      }
+      if (context.mounted) {
+        showTopSnackBar(
+          Overlay.of(context),
+          CustomSnackBar.success(
+            message:
+                '${images.length} foto${images.length != 1 ? 's' : ''} salva${images.length != 1 ? 's' : ''} na galeria.',
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        showTopSnackBar(
+          Overlay.of(context),
+          const CustomSnackBar.error(message: 'Erro ao salvar na galeria.'),
+        );
+      }
+    }
+  }
+
+  void _openViewer(
+    List<DroneImageEntry> entries,
+    int initialIndex,
+    BuildContext context,
+  ) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _MediaImageViewerPage(
+          entries: entries,
+          initialIndex: initialIndex,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(droneMediaViewModelProvider);
-    final entries = state.entries;
+    final groups = state.missionGroups;
 
     return Scaffold(
       backgroundColor: AppColors.grayLight,
       body: SafeArea(
         child: Column(
           children: [
-            // ── Busca + filtro ─────────────────────────────────────────────────
+            // ── Busca + filtro ──────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: Row(
@@ -165,7 +210,7 @@ class _DroneMediaPageState extends ConsumerState<DroneMediaPage> {
               ),
             ),
 
-            // ── Chips ativos ──────────────────────────────────────────────────
+            // ── Chips ativos ──────────────────────────────────────────────
             if (state.hasActiveFilters)
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -247,13 +292,13 @@ class _DroneMediaPageState extends ConsumerState<DroneMediaPage> {
 
             const SizedBox(height: 8),
 
-            // ── Grid ──────────────────────────────────────────────────────────
+            // ── Lista agrupada por missão ──────────────────────────────────
             Expanded(
               child: RefreshIndicator(
                 color: AppColors.green,
                 onRefresh: () =>
                     ref.read(droneMediaViewModelProvider.notifier).fetch(),
-                child: _buildBody(state, entries),
+                child: _buildBody(state, groups),
               ),
             ),
           ],
@@ -262,7 +307,16 @@ class _DroneMediaPageState extends ConsumerState<DroneMediaPage> {
     );
   }
 
-  Widget _buildBody(DroneMediaState state, List<DroneImageEntry> entries) {
+  Widget _buildBody(
+    DroneMediaState state,
+    List<
+        ({
+          int missionId,
+          String missionTitle,
+          List<DroneImageEntry> images,
+        })>
+        groups,
+  ) {
     if (state.isLoading && state.allEntries.isEmpty) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.green),
@@ -273,98 +327,195 @@ class _DroneMediaPageState extends ConsumerState<DroneMediaPage> {
       return _buildEmptyState(hasSearch: false);
     }
 
-    if (entries.isEmpty) {
+    if (groups.isEmpty) {
       return _buildEmptyState(hasSearch: true);
     }
 
-    return GridView.builder(
+    return ListView.builder(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(12, 4, 12, 100),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 6,
-        mainAxisSpacing: 6,
-      ),
-      itemCount: entries.length,
-      itemBuilder: (context, index) => _buildTile(entries[index], entries, index),
+      padding: const EdgeInsets.fromLTRB(0, 4, 0, 100),
+      itemCount: groups.length,
+      itemBuilder: (context, i) => _buildMissionGroup(context, groups[i]),
     );
   }
 
-  Widget _buildTile(DroneImageEntry entry, List<DroneImageEntry> allVisible, int index) {
-    return GestureDetector(
-      onTap: () => _openViewer(allVisible, index),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.file(
-              File(entry.image.localPath),
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                color: AppColors.white,
-                child: const Icon(
-                  Icons.image_not_supported_outlined,
-                  color: AppColors.grayMedium,
-                  size: 32,
+  Widget _buildMissionGroup(
+    BuildContext context,
+    ({int missionId, String missionTitle, List<DroneImageEntry> images}) group,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Mission header ────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 8, 8),
+            child: Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: AppColors.green.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.flight_outlined,
+                    size: 16,
+                    color: AppColors.green,
+                  ),
                 ),
-              ),
-            ),
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
-                color: Colors.black.withValues(alpha: 0.55),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      entry.missionTitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w600,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        group.missionTitle,
+                        style: AppText.medium.copyWith(
+                          color: AppColors.navy,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        '${group.images.length} foto${group.images.length != 1 ? 's' : ''}',
+                        style: AppText.small.copyWith(
+                          color: AppColors.grayMedium,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                PopupMenuButton<String>(
+                  icon: const Icon(
+                    Icons.more_vert,
+                    color: AppColors.grayMedium,
+                    size: 20,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  onSelected: (value) {
+                    if (value == 'open') {
+                      Navigator.of(context).pushNamed(
+                        '/drone/mission/details',
+                        arguments: group.missionId,
+                      );
+                    } else if (value == 'download') {
+                      _downloadImages(context, group.images);
+                    }
+                  },
+                  itemBuilder: (_) => [
+                    const PopupMenuItem(
+                      value: 'open',
+                      child: Row(
+                        children: [
+                          Icon(Icons.open_in_new_outlined, size: 18, color: AppColors.navy),
+                          SizedBox(width: 10),
+                          Text('Abrir missão'),
+                        ],
                       ),
                     ),
-                    Text(
-                      DateFormat('dd/MM/yyyy').format(entry.image.datetime),
-                      style: const TextStyle(color: Colors.white70, fontSize: 8),
+                    const PopupMenuItem(
+                      value: 'download',
+                      child: Row(
+                        children: [
+                          Icon(Icons.download_outlined, size: 18, color: AppColors.navy),
+                          SizedBox(width: 10),
+                          Text('Baixar fotos da missão'),
+                        ],
+                      ),
                     ),
                   ],
                 ),
-              ),
+              ],
             ),
-            if (entry.image.isLinked)
-              Positioned(
-                top: 4,
-                right: 4,
-                child: Container(
-                  padding: const EdgeInsets.all(3),
-                  decoration: const BoxDecoration(
-                    color: AppColors.green,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.check, color: AppColors.white, size: 10),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
+          ),
 
-  void _openViewer(List<DroneImageEntry> entries, int initialIndex) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => _MediaImageViewerPage(
-          entries: entries,
-          initialIndex: initialIndex,
-        ),
+          // ── Horizontal photo strip ────────────────────────────────────
+          SizedBox(
+            height: 120,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: group.images.length,
+              itemBuilder: (context, i) {
+                final entry = group.images[i];
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: GestureDetector(
+                    onTap: () => _openViewer(group.images, i, context),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Stack(
+                        children: [
+                          Image.file(
+                            File(entry.image.localPath),
+                            width: 110,
+                            height: 120,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              width: 110,
+                              height: 120,
+                              color: AppColors.white,
+                              child: const Icon(
+                                Icons.image_not_supported_outlined,
+                                color: AppColors.grayMedium,
+                                size: 28,
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 5,
+                                vertical: 4,
+                              ),
+                              color: Colors.black.withValues(alpha: 0.5),
+                              child: Text(
+                                DateFormat('dd/MM/yy HH:mm').format(
+                                  entry.image.datetime,
+                                ),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 8,
+                                ),
+                              ),
+                            ),
+                          ),
+                          if (entry.image.isLinked)
+                            Positioned(
+                              top: 4,
+                              right: 4,
+                              child: Container(
+                                padding: const EdgeInsets.all(3),
+                                decoration: const BoxDecoration(
+                                  color: AppColors.green,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.check,
+                                  color: AppColors.white,
+                                  size: 10,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -494,7 +645,8 @@ class _MediaFilterSheet extends ConsumerWidget {
                 ),
             ],
           ),
-          // ── Missão ──────────────────────────────────────────────────────────
+
+          // ── Missão ────────────────────────────────────────────────────────
           if (state.availableMissions.isNotEmpty) ...[
             const SizedBox(height: 20),
             Text(
@@ -526,7 +678,8 @@ class _MediaFilterSheet extends ConsumerWidget {
           ],
 
           const SizedBox(height: 20),
-          // ── Vínculo ─────────────────────────────────────────────────────────
+
+          // ── Vínculo ──────────────────────────────────────────────────────
           Text(
             'Vínculo com análise',
             style: AppText.body.copyWith(
@@ -558,7 +711,7 @@ class _MediaFilterSheet extends ConsumerWidget {
 
           const SizedBox(height: 20),
 
-          // ── Período ─────────────────────────────────────────────────────────
+          // ── Período ───────────────────────────────────────────────────────
           Text(
             'Período',
             style: AppText.body.copyWith(
@@ -607,7 +760,7 @@ class _MediaFilterSheet extends ConsumerWidget {
 
           const SizedBox(height: 20),
 
-          // ── Ordenar ─────────────────────────────────────────────────────────
+          // ── Ordenar ───────────────────────────────────────────────────────
           Text(
             'Ordenar por',
             style: AppText.body.copyWith(
@@ -785,6 +938,7 @@ class _MediaImageViewerPage extends StatefulWidget {
 class _MediaImageViewerPageState extends State<_MediaImageViewerPage> {
   late final PageController _pageController;
   late int _currentIndex;
+  bool _isDownloading = false;
 
   @override
   void initState() {
@@ -797,6 +951,30 @@ class _MediaImageViewerPageState extends State<_MediaImageViewerPage> {
   void dispose() {
     _pageController.dispose();
     super.dispose();
+  }
+
+  Future<void> _downloadCurrent() async {
+    if (_isDownloading) return;
+    setState(() => _isDownloading = true);
+    try {
+      final path = widget.entries[_currentIndex].image.localPath;
+      await Gal.putImage(path);
+      if (mounted) {
+        showTopSnackBar(
+          Overlay.of(context),
+          const CustomSnackBar.success(message: 'Foto salva na galeria.'),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        showTopSnackBar(
+          Overlay.of(context),
+          const CustomSnackBar.error(message: 'Erro ao salvar na galeria.'),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isDownloading = false);
+    }
   }
 
   @override
@@ -820,6 +998,25 @@ class _MediaImageViewerPageState extends State<_MediaImageViewerPage> {
             ),
           ],
         ),
+        actions: [
+          _isDownloading
+              ? const Padding(
+                  padding: EdgeInsets.all(14),
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  ),
+                )
+              : IconButton(
+                  icon: const Icon(Icons.download_outlined, color: Colors.white),
+                  tooltip: 'Baixar foto',
+                  onPressed: _downloadCurrent,
+                ),
+        ],
       ),
       body: PageView.builder(
         controller: _pageController,

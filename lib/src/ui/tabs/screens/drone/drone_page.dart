@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nutrinitro/src/core/themes/app_colors.dart';
 import 'package:nutrinitro/src/core/themes/app_text.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/drone/drone_tab_provider.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/drone/media/drone_media_page.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/drone/missions/drone_missions_page.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/drone/panel/drone_panel_page.dart';
@@ -20,7 +21,13 @@ class _DronePageState extends ConsumerState<DronePage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    final initialTab = ref.read(droneTabIndexProvider);
+    _tabController = TabController(length: 3, vsync: this, initialIndex: initialTab);
+    if (initialTab != 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(droneTabIndexProvider.notifier).setTab(0);
+      });
+    }
   }
 
   @override
