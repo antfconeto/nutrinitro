@@ -58,6 +58,27 @@ class AnalysisCreateViewModel extends _$AnalysisCreateViewModel {
   void selectCrop(CropModel crop) =>
       state = state.copyWith(selectedCrop: crop, clearError: true);
 
+  Future<void> initFromPreset(DroneAnalysisPreset preset) async {
+    state = state.copyWith(
+      title: preset.title,
+      datetime: preset.datetime,
+      notes: preset.notes,
+      images: const [],
+      imageSourceNames: const [],
+      submitted: false,
+      clearError: true,
+    );
+    if (preset.images.isNotEmpty) {
+      final picks = preset.images.asMap().entries.map((e) {
+        final name = e.key < preset.sourceNames.length
+            ? preset.sourceNames[e.key]
+            : null;
+        return LocalImagePick(e.value, name);
+      }).toList();
+      await _appendImages(picks);
+    }
+  }
+
   // ─── Images ────────────────────────────────────────────────────────────────
 
   Future<void> _appendImages(List<LocalImagePick> picks) async {

@@ -13,6 +13,7 @@ import 'package:nutrinitro/src/core/themes/app_text.dart';
 import 'package:nutrinitro/src/data/models/drone/drone_image_model.dart';
 import 'package:nutrinitro/src/data/models/drone/mission_model.dart';
 import 'package:nutrinitro/src/data/services/services_provider.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/analysis/create/analysis_create_state.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/drone/drone_tab_provider.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/drone/missions/details/mission_details_state.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/drone/missions/details/mission_details_view_model.dart';
@@ -567,7 +568,7 @@ class _MissionDetailsPageState extends ConsumerState<MissionDetailsPage> {
                     width: double.infinity,
                     height: 54,
                     child: ElevatedButton.icon(
-                      onPressed: () => _showAnalysisPlaceholder(context),
+                      onPressed: () => _navigateToAnalysis(context, state),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.green,
                         shape: RoundedRectangleBorder(
@@ -658,13 +659,16 @@ class _MissionDetailsPageState extends ConsumerState<MissionDetailsPage> {
     );
   }
 
-  void _showAnalysisPlaceholder(BuildContext context) {
-    showTopSnackBar(
-      Overlay.of(context),
-      const CustomSnackBar.success(
-        message: 'Análise com imagens de drone será implementada em breve.',
-      ),
+  void _navigateToAnalysis(BuildContext context, MissionDetailsState state) {
+    final mission = state.mission!;
+    final preset = DroneAnalysisPreset(
+      title: mission.title,
+      datetime: mission.completedAt ?? mission.startedAt ?? DateTime.now(),
+      notes: mission.notes,
+      images: state.images.map((img) => File(img.localPath)).toList(),
+      sourceNames: List.generate(state.images.length, (i) => 'Foto ${i + 1}'),
     );
+    Navigator.of(context).pushNamed('/analysis/create', arguments: preset);
   }
 
   Future<void> _downloadAllImages(

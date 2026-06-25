@@ -2,6 +2,22 @@ import 'dart:io';
 import 'package:equatable/equatable.dart';
 import 'package:nutrinitro/src/data/models/crop_model.dart';
 
+class DroneAnalysisPreset {
+  final String title;
+  final DateTime datetime;
+  final String? notes;
+  final List<File> images;
+  final List<String?> sourceNames;
+
+  const DroneAnalysisPreset({
+    required this.title,
+    required this.datetime,
+    this.notes,
+    required this.images,
+    required this.sourceNames,
+  });
+}
+
 class AnalysisCreateState extends Equatable {
   final bool isLoading;
   final bool isSubmitting;
