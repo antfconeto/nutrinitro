@@ -9,12 +9,12 @@ part of 'active_tasks_provider.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 
-@ProviderFor(ActiveTasksNotifier)
-const activeTasksProvider = ActiveTasksNotifierProvider._();
+@ProviderFor(ActiveTasks)
+const activeTasksProvider = ActiveTasksProvider._();
 
-final class ActiveTasksNotifierProvider
-    extends $NotifierProvider<ActiveTasksNotifier, ActiveTasksState> {
-  const ActiveTasksNotifierProvider._()
+final class ActiveTasksProvider
+    extends $NotifierProvider<ActiveTasks, ActiveTasksState> {
+  const ActiveTasksProvider._()
     : super(
         from: null,
         argument: null,
@@ -26,11 +26,11 @@ final class ActiveTasksNotifierProvider
       );
 
   @override
-  String debugGetCreateSourceHash() => _$activeTasksNotifierHash();
+  String debugGetCreateSourceHash() => _$activeTasksHash();
 
   @$internal
   @override
-  ActiveTasksNotifier create() => ActiveTasksNotifier();
+  ActiveTasks create() => ActiveTasks();
 
   /// {@macro riverpod.override_with_value}
   Override overrideWithValue(ActiveTasksState value) {
@@ -41,10 +41,9 @@ final class ActiveTasksNotifierProvider
   }
 }
 
-String _$activeTasksNotifierHash() =>
-    r'71fa29815d04c859b6376bdb5390a88605db2628';
+String _$activeTasksHash() => r'40d3e0d973efe18591013d6a07b5093f39ce646d';
 
-abstract class _$ActiveTasksNotifier extends $Notifier<ActiveTasksState> {
+abstract class _$ActiveTasks extends $Notifier<ActiveTasksState> {
   ActiveTasksState build();
   @$mustCallSuper
   @override

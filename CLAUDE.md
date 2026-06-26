@@ -344,17 +344,119 @@ flutter test
 
 ## Branch atual — `feat/drone-integration`
 
-**Pronto:**
-- Repositórios: `MissionRepository`, `WaypointRepository`, `DroneImageRepository`
-  - `MissionRepository.updateWithWaypoints(...)` — atualiza metadados + substitui todos os waypoints atomicamente
-- Serviços: `MockDroneService` (completo), `DjiDroneService` (scaffoldado)
-- Telas: Painel do drone, lista de missões, criar missão, detalhes da missão, mídia
-- Filtros com date range e ordenação em todas as listas (análises, missões, mídia)
-- `_MissionMapCard`: card interativo de rota nos detalhes da missão — marcadores numerados clicáveis, painel de info do waypoint selecionado, toggle satélite, recenter
-- Mapa de pré-visualização satélite não-interativo nos cards da lista de missões (160px)
-- `MissionCreatePage` com modo edição: `initialMission` pré-popula tudo; drag-to-move nos marcadores; inserir waypoint entre dois pontos via "+" no midpoint de cada segmento
+### Concluído
 
-**Pendente:**
-- Integração real com SDK DJI (autenticação, conexão, upload de waypoints, telemetria real)
-- Stream de vídeo ao vivo
-- Download de mídia do armazenamento do drone
+**Repositórios e dados**
+- `MissionRepository`, `WaypointRepository`, `DroneImageRepository`
+  - `updateWithWaypoints(...)` — atualiza metadados + substitui waypoints atomicamente
+  - `findByStatus(MissionStatus)` — busca missões por status sem carregar waypoints
+  - `findActive()` em `AnalysisRepository` — retorna análises com `status = 'processing'` sem joins
+
+**Serviços**
+- `MockDroneService` — completamente implementado: telemetria simulada, bateria drenando, missão ponto a ponto, pausa de 400ms em cada waypoint
+- `DjiDroneService` — scaffoldado com TODOs (ver seção de integração abaixo)
+
+**Fluxo missão → análise**
+- `DroneAnalysisPreset` passado como argumento de rota para `/analysis/create`
+- `initFromPreset()` no VM pré-preenche título, data, notas, cultura (`cropId`) e imagens
+- Botão "Fazer Análise" visível para missões `completed` independentemente de ter imagens
+
+**Download com progresso**
+- `downloadWithProgress()` em `core/widgets/download_progress_dialog.dart`
+- `LinearProgressIndicator` com contador "X de N fotos" — usado em `MissionDetailsPage` e `DroneMediaPage`
+
+**Resiliência de tarefas longas**
+- `lib/src/data/services/active_tasks/active_tasks_state.dart` — `ActiveTasksState` com `executingMissions`, `interruptedAnalyses`, `totalCount`
+- `lib/src/data/services/active_tasks/active_tasks_provider.dart` — `class ActiveTasks extends _$ActiveTasks` (`keepAlive: true`), provider gerado: `activeTasksProvider`; chama `refresh()` a cada volta do app ao foreground
+- `TabsPage` com `WidgetsBindingObserver`: chama `activeTasksProvider.notifier.refresh()` no `initState` e em cada `AppLifecycleState.resumed`
+- `DashboardPage`: sino de notificação com `Badge` (Material 3, laranja) mostra contagem de tarefas ativas; abre `active_tasks_bottom_sheet`
+- `active_tasks_bottom_sheet.dart`: lista missões em execução (navega para detalhes) e análises interrompidas (navega para detalhes)
+- `analysis_header_card.dart`: botão de análise aparece também para `isProcessing`; label "Processar novamente"
+- `analysis_details_view_model.dart`: guard `if (state.isAnalyzing) return;` — permite reprocessar análise com status `processing` no banco (deixada assim por kill do app)
+
+> **build_runner pendente:** `active_tasks_provider.dart` usa `@Riverpod(keepAlive: true)`. Rodar `dart run build_runner build` para gerar `active_tasks_provider.g.dart`.
+
+**Telas**
+- Painel do drone, lista de missões, criar/editar missão, detalhes da missão, mídia
+- Filtros com date range e ordenação em todas as listas (análises, missões, mídia)
+- `_MissionMapCard`: marcadores numerados, painel de info, toggle satélite, recenter
+- Mapa satélite não-interativo de 160px nos cards da lista de missões
+- `MissionCreatePage`: drag-to-move em marcadores; inserir waypoint via midpoint "+"
+
+---
+
+### Pendente — Integração DJI SDK
+
+#### Visão geral
+Toda a lógica de UI e persistência está pronta. O único passo restante é preencher `DjiDroneService` com chamadas reais ao SDK.
+
+**Arquivo:** `lib/src/data/services/drone/dji_drone_service.dart`
+**Toggle:** `Env.useMockDrone` no `.env` — setar `USE_MOCK_DRONE=false` para ativar
+
+#### Passo 1 — Adicionar o package ao pubspec.yaml
+
+Verificar o package disponível para DJI Mobile SDK no Flutter (geralmente `dji_flutter_plugin` ou wrapper customizado). Adicionar em `dependencies:` e rodar `flutter pub get`.
+
+```yaml
+dependencies:
+  dji_flutter_plugin: ^x.x.x  # confirmar versão atual
+```
+
+#### Passo 2 — Configuração nativa
+
+**Android** (`android/app/src/main/AndroidManifest.xml`):
+```xml
+<uses-permission android:name="android.permission.INTERNET"/>
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+<uses-permission android:name="android.permission.CAMERA"/>
+<!-- Adicionar app key do DJI Developer Center -->
+<meta-data android:name="com.dji.sdk.API_KEY" android:value="SUA_APP_KEY"/>
+```
+
+**iOS** (`ios/Runner/Info.plist`): adicionar permissões de câmera, localização, bluetooth e a app key DJI.
+
+#### Passo 3 — Implementar DjiDroneService
+
+A interface `IDroneService` define todos os contratos. Prioridade de implementação:
+
+1. **`connect()` / `disconnect()` / `connectionStream`** — autenticar app key + conectar ao drone via Wi-Fi/OcuSync. Emitir `DroneConnectionState` no stream.
+
+2. **`telemetryStream`** — mapear dados de voo DJI (altitude, velocidade, GPS, bateria, heading) para `TelemetryData`. Emitir a cada ~500ms.
+
+3. **`takeoff()` / `land()` / `returnToHome()`** — chamadas diretas ao SDK.
+
+4. **`uploadMission()` / `startMission()` / `abortMission()` / `missionProgressStream`** — converter `List<DroneWaypointModel>` para waypoints DJI (lat/lng/altitude/speed/action); monitorar progresso via listener do SDK e emitir índice atual.
+
+5. **`capturePhoto()` / `startIntervalShooting()`** — comandos de câmera via `DJICameraKey`.
+
+6. **`videoStream`** — decodificar stream H.264 do DJI para `Uint8List` de frames; expor como `Stream<Uint8List>`.
+
+7. **`listMediaFiles()` / `downloadFile()` / `deleteFile()`** — acesso ao cartão SD via `DJIMediaManager`.
+
+#### Passo 4 — Stream de vídeo ao vivo
+
+A `DronePage` já tem um painel de vídeo. Conectar ao `IDroneService.videoStream`:
+
+```dart
+// No widget de vídeo, assinar o stream
+ref.watch(droneServiceProvider).videoStream.listen((frame) {
+  // Renderizar com RawImage ou Texture
+});
+```
+
+O `MockDroneService.videoStream` emite `Stream.empty()` — sem impacto no mock.
+
+#### Passo 5 — Salvar imagens capturadas em voo
+
+Quando `capturePhoto()` é chamado durante missão, o `MockDroneService` já cria um `DroneImageModel` e salva via `DroneImageRepository`. O `DjiDroneService` deve seguir o mesmo padrão: após captura, baixar a imagem do drone via `DJIMediaManager`, salvar no documents directory com `StorageService`, persistir com `DroneImageRepository`.
+
+#### Passo 6 — Reconexão após foreground
+
+Quando o app volta ao foreground (`TabsPage.didChangeAppLifecycleState`), além do `activeTasksProvider.refresh()` já implementado, considerar chamar `droneService.connect()` se o estado anterior era `connected`. O `DroneConnectionState` atual é exibido no painel — a UI já reage ao stream.
+
+---
+
+### Pendente — Outros
+
+- Tela de monitor de missão em tempo real (rota no mapa com posição atual do drone)
+- Download de mídia em lote do armazenamento interno do drone (não da galeria local)

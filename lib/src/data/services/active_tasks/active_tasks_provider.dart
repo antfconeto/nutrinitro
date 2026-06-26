@@ -7,7 +7,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'active_tasks_provider.g.dart';
 
 @Riverpod(keepAlive: true)
-class ActiveTasksNotifier extends _$ActiveTasksNotifier {
+class ActiveTasks extends _$ActiveTasks {
   @override
   ActiveTasksState build() {
     Future.microtask(_fetch);
