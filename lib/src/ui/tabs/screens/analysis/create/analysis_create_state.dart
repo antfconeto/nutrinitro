@@ -8,6 +8,7 @@ class DroneAnalysisPreset {
   final String? notes;
   final List<File> images;
   final List<String?> sourceNames;
+  final int? cropId;
 
   const DroneAnalysisPreset({
     required this.title,
@@ -15,6 +16,7 @@ class DroneAnalysisPreset {
     this.notes,
     required this.images,
     required this.sourceNames,
+    this.cropId,
   });
 }
 

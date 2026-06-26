@@ -31,7 +31,7 @@ class _AnalysisCreatePageState extends ConsumerState<AnalysisCreatePage> {
       final args = ModalRoute.of(context)?.settings.arguments;
       if (args is DroneAnalysisPreset) {
         _titleController.text = args.title;
-        if (args.notes != null) _notesController.text = args.notes!;
+        _notesController.text = args.notes ?? '';
         ref
             .read(analysisCreateViewModelProvider.notifier)
             .initFromPreset(args);

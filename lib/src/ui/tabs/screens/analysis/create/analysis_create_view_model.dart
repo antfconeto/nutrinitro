@@ -63,11 +63,21 @@ class AnalysisCreateViewModel extends _$AnalysisCreateViewModel {
       title: preset.title,
       datetime: preset.datetime,
       notes: preset.notes,
+      clearNotes: preset.notes == null,
       images: const [],
       imageSourceNames: const [],
       submitted: false,
+      clearSelectedCrop: true,
       clearError: true,
     );
+
+    if (preset.cropId != null && state.crops.isNotEmpty) {
+      try {
+        final match = state.crops.firstWhere((c) => c.id == preset.cropId);
+        state = state.copyWith(selectedCrop: match);
+      } catch (_) {}
+    }
+
     if (preset.images.isNotEmpty) {
       final picks = preset.images.asMap().entries.map((e) {
         final name = e.key < preset.sourceNames.length

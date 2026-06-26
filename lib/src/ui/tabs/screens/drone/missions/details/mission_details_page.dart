@@ -557,7 +557,7 @@ class _MissionDetailsPageState extends ConsumerState<MissionDetailsPage> {
             ),
           ),
 
-        if (mission.status == MissionStatus.completed && state.images.isNotEmpty)
+        if (mission.status == MissionStatus.completed)
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -590,67 +590,69 @@ class _MissionDetailsPageState extends ConsumerState<MissionDetailsPage> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: OutlinedButton.icon(
-                      onPressed: () => _downloadAllImages(context, state.images),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFFDDE4DD)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                  if (state.images.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _downloadAllImages(context, state.images),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFFDDE4DD)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                      ),
-                      icon: Icon(
-                        Icons.download_outlined,
-                        color: AppColors.navy,
-                        size: 18,
-                      ),
-                      label: Text(
-                        'Baixar ${state.images.length} foto${state.images.length != 1 ? 's' : ''}',
-                        style: AppText.medium.copyWith(
+                        icon: Icon(
+                          Icons.download_outlined,
                           color: AppColors.navy,
-                          fontWeight: FontWeight.w600,
+                          size: 18,
+                        ),
+                        label: Text(
+                          'Baixar ${state.images.length} foto${state.images.length != 1 ? 's' : ''}',
+                          style: AppText.medium.copyWith(
+                            color: AppColors.navy,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        ref
-                            .read(droneTabIndexProvider.notifier)
-                            .setTab(2);
-                        Navigator.of(context).pushNamedAndRemoveUntil(
-                          '/tabs',
-                          (route) => false,
-                          arguments: 2,
-                        );
-                      },
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFFDDE4DD)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          ref
+                              .read(droneTabIndexProvider.notifier)
+                              .setTab(2);
+                          Navigator.of(context).pushNamedAndRemoveUntil(
+                            '/tabs',
+                            (route) => false,
+                            arguments: 2,
+                          );
+                        },
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFFDDE4DD)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                      ),
-                      icon: Icon(
-                        Icons.photo_library_outlined,
-                        color: AppColors.navy,
-                        size: 18,
-                      ),
-                      label: Text(
-                        'Ver em Mídia',
-                        style: AppText.medium.copyWith(
+                        icon: Icon(
+                          Icons.photo_library_outlined,
                           color: AppColors.navy,
-                          fontWeight: FontWeight.w600,
+                          size: 18,
+                        ),
+                        label: Text(
+                          'Ver em Mídia',
+                          style: AppText.medium.copyWith(
+                            color: AppColors.navy,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
@@ -667,6 +669,7 @@ class _MissionDetailsPageState extends ConsumerState<MissionDetailsPage> {
       notes: mission.notes,
       images: state.images.map((img) => File(img.localPath)).toList(),
       sourceNames: List.generate(state.images.length, (i) => 'Foto ${i + 1}'),
+      cropId: mission.cropId,
     );
     Navigator.of(context).pushNamed('/analysis/create', arguments: preset);
   }
