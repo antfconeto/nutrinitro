@@ -60,6 +60,9 @@ dependencies:
     printing: ^5.14.3
     path_provider: ^2.1.5
     opencv_dart: ^2.2.1+4
+    geolocator: ^13.0.2
+    equatable: ^2.0.5
+    gal: ^1.3.0
 
 dev_dependencies:
     flutter_test:
@@ -96,6 +99,7 @@ flutter:
         - assets/images/
         - assets/images/crops/
         - assets/recipes/
+        - assets/mock/drone/
         - .env
 
     # An image asset can refer to one or more resolution-specific "variants", see

@@ -13,7 +13,7 @@ Future<Database> databaseClient(Ref ref) async {
 
   final db = await openDatabase(
     path,
-    version: 3,
+    version: 4,
     onCreate: _onCreate,
     onUpgrade: _onUpgrade,
   );
@@ -37,10 +37,14 @@ Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
       );
     } catch (_) {}
 
-    final count = Sqflite.firstIntValue(await db.rawQuery(
-      "SELECT COUNT(*) FROM crops WHERE name = ?",
-      ['Capim Marandu'],
-    )) ?? 0;
+    final count =
+        Sqflite.firstIntValue(
+          await db.rawQuery(
+            "SELECT COUNT(*) FROM crops WHERE name = ?",
+            ['Capim Marandu'],
+          ),
+        ) ??
+        0;
 
     if (count == 0) {
       await db.insert('crops', {
@@ -59,6 +63,10 @@ Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
       where: 'name = ?',
       whereArgs: ['Capim Marandu'],
     );
+  }
+
+  if (oldVersion < 4) {
+    await _createDroneTables(db);
   }
 }
 
@@ -83,6 +91,55 @@ Future<void> _createRecipeTables(Database db) async {
       PRIMARY KEY (crop_id, recipe_id),
       FOREIGN KEY (crop_id) REFERENCES crops(id),
       FOREIGN KEY (recipe_id) REFERENCES analysis_recipes(id)
+    )
+  ''');
+}
+
+Future<void> _createDroneTables(Database db) async {
+  await db.execute('''
+    CREATE TABLE IF NOT EXISTS missions (
+      id               INTEGER PRIMARY KEY AUTOINCREMENT,
+      title            VARCHAR NOT NULL,
+      notes            TEXT,
+      status           VARCHAR NOT NULL DEFAULT 'planned',
+      crop_id          INTEGER,
+      created_at       TIMESTAMP NOT NULL,
+      started_at       TIMESTAMP,
+      completed_at     TIMESTAMP,
+      flight_path_json TEXT,
+      FOREIGN KEY (crop_id) REFERENCES crops(id)
+    )
+  ''');
+
+  await db.execute('''
+    CREATE TABLE IF NOT EXISTS waypoints (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      mission_id    INTEGER NOT NULL,
+      latitude      REAL NOT NULL,
+      longitude     REAL NOT NULL,
+      altitude      REAL NOT NULL,
+      speed         REAL NOT NULL DEFAULT 5.0,
+      heading       REAL NOT NULL DEFAULT 0.0,
+      capture_photo INTEGER NOT NULL DEFAULT 1,
+      order_index   INTEGER NOT NULL,
+      FOREIGN KEY (mission_id) REFERENCES missions(id)
+    )
+  ''');
+
+  await db.execute('''
+    CREATE TABLE IF NOT EXISTS drone_images (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      mission_id  INTEGER NOT NULL,
+      waypoint_id INTEGER,
+      local_path  TEXT NOT NULL,
+      latitude    REAL,
+      longitude   REAL,
+      altitude    REAL,
+      datetime    TIMESTAMP NOT NULL,
+      analysis_id INTEGER,
+      FOREIGN KEY (mission_id)  REFERENCES missions(id),
+      FOREIGN KEY (waypoint_id) REFERENCES waypoints(id),
+      FOREIGN KEY (analysis_id) REFERENCES analyses(id)
     )
   ''');
 }
@@ -126,6 +183,7 @@ Future<void> _onCreate(Database db, int version) async {
   ''');
 
   await _createRecipeTables(db);
+  await _createDroneTables(db);
   await _seedCrops(db);
 }
 

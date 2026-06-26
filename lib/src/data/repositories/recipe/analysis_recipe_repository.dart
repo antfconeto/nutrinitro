@@ -1,5 +1,5 @@
 import 'package:nutrinitro/src/core/interfaces/api_result_interface.dart';
-import 'package:nutrinitro/src/data/models/recipe/analysis_recipe.dart';
+import 'package:nutrinitro/src/data/models/analysis/analysis_recipe.dart';
 import 'package:sqflite/sqflite.dart';
 
 class AnalysisRecipeRepository {

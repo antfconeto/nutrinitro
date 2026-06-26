@@ -41,4 +41,4 @@ final class DatabaseClientProvider
   }
 }
 
-String _$databaseClientHash() => r'3d74056b4b7853361e915d6d5363ca5eaa7f9831';
+String _$databaseClientHash() => r'053f7a5cad0b4911e06424b71b1e513941b681d2';

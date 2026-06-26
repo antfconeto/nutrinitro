@@ -6,6 +6,8 @@ import 'package:uuid/uuid.dart';
 class StorageService {
   final _uuid = const Uuid();
 
+  // ─── Analysis ──────────────────────────────────────────────────────────────
+
   Future<Directory> _analysisDirectory(int analysisId) async {
     final base = await getApplicationDocumentsDirectory();
     final dir = Directory(p.join(base.path, 'analyses', analysisId.toString()));
@@ -20,7 +22,9 @@ class StorageService {
     int? displayOrder,
   }) async {
     final dir = await _analysisDirectory(analysisId);
-    final ext = p.extension(sourcePath).isNotEmpty ? p.extension(sourcePath) : '.jpg';
+    final ext = p.extension(sourcePath).isNotEmpty
+        ? p.extension(sourcePath)
+        : '.jpg';
     final String fileName = _resolveFileName(
       preferredFileName: preferredFileName,
       displayOrder: displayOrder,
@@ -29,7 +33,8 @@ class StorageService {
     final destination = File(p.join(dir.path, fileName));
     if (await destination.exists()) {
       final stem = p.basenameWithoutExtension(fileName);
-      final uniqueName = '${stem}_${displayOrder ?? 0}_${_uuid.v4().substring(0, 6)}$ext';
+      final uniqueName =
+          '${stem}_${displayOrder ?? 0}_${_uuid.v4().substring(0, 6)}$ext';
       final uniqueDest = File(p.join(dir.path, uniqueName));
       await File(sourcePath).copy(uniqueDest.path);
       return uniqueDest.path;
@@ -37,6 +42,43 @@ class StorageService {
     await File(sourcePath).copy(destination.path);
     return destination.path;
   }
+
+  Future<void> deleteAnalysisFiles(int analysisId) async {
+    final base = await getApplicationDocumentsDirectory();
+    final dir = Directory(p.join(base.path, 'analyses', analysisId.toString()));
+    if (await dir.exists()) await dir.delete(recursive: true);
+  }
+
+  // ─── Drone ─────────────────────────────────────────────────────────────────
+
+  Future<Directory> _missionDirectory(int missionId) async {
+    final base = await getApplicationDocumentsDirectory();
+    final dir = Directory(p.join(base.path, 'missions', missionId.toString()));
+    if (!await dir.exists()) await dir.create(recursive: true);
+    return dir;
+  }
+
+  Future<String> saveDroneImage({
+    required int missionId,
+    required String sourcePath,
+  }) async {
+    final dir = await _missionDirectory(missionId);
+    final ext = p.extension(sourcePath).isNotEmpty
+        ? p.extension(sourcePath)
+        : '.jpg';
+    final fileName = '${_uuid.v4()}$ext';
+    final destination = File(p.join(dir.path, fileName));
+    await File(sourcePath).copy(destination.path);
+    return destination.path;
+  }
+
+  Future<void> deleteMissionFiles(int missionId) async {
+    final base = await getApplicationDocumentsDirectory();
+    final dir = Directory(p.join(base.path, 'missions', missionId.toString()));
+    if (await dir.exists()) await dir.delete(recursive: true);
+  }
+
+  // ─── Helpers ───────────────────────────────────────────────────────────────
 
   String _resolveFileName({
     String? preferredFileName,
@@ -60,16 +102,13 @@ class StorageService {
     final stem = p.basenameWithoutExtension(base);
     final safeStem = stem.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
     if (safeStem.isEmpty) return null;
-    if (RegExp(r'^(P\d{1,2}|\d{2}-\d{2})', caseSensitive: false).hasMatch(safeStem) ||
+    if (RegExp(
+          r'^(P\d{1,2}|\d{2}-\d{2})',
+          caseSensitive: false,
+        ).hasMatch(safeStem) ||
         RegExp(r'P\d{1,2}', caseSensitive: false).hasMatch(safeStem)) {
       return '$safeStem${ext.isNotEmpty ? ext : '.jpg'}';
     }
     return '$safeStem${ext.isNotEmpty ? ext : '.jpg'}';
-  }
-
-  Future<void> deleteAnalysisFiles(int analysisId) async {
-    final base = await getApplicationDocumentsDirectory();
-    final dir = Directory(p.join(base.path, 'analyses', analysisId.toString()));
-    if (await dir.exists()) await dir.delete(recursive: true);
   }
 }

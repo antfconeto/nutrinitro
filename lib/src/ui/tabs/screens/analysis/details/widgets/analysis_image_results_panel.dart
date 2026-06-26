@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:nutrinitro/src/core/themes/app_colors.dart';
 import 'package:nutrinitro/src/core/themes/app_text.dart';
-import 'package:nutrinitro/src/data/models/image_model.dart';
+import 'package:nutrinitro/src/data/models/analysis/image_model.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/analysis/details/widgets/analysis_metadata_row.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/analysis/details/widgets/analysis_metric_tile.dart';
 

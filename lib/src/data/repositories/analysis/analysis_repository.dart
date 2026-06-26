@@ -1,9 +1,9 @@
-import 'package:nutrinitro/src/core/constants/analysis_status.dart';
-import 'package:nutrinitro/src/core/constants/repository_includes.dart';
+import 'package:nutrinitro/src/core/const/analysis_status.dart';
+import 'package:nutrinitro/src/core/const/repository_includes.dart';
 import 'package:nutrinitro/src/core/interfaces/api_result_interface.dart';
-import 'package:nutrinitro/src/data/models/analysis_model.dart';
+import 'package:nutrinitro/src/data/models/analysis/analysis_model.dart';
 import 'package:nutrinitro/src/data/models/crop_model.dart';
-import 'package:nutrinitro/src/data/models/image_model.dart';
+import 'package:nutrinitro/src/data/models/analysis/image_model.dart';
 import 'package:nutrinitro/src/data/repositories/crop/crop_repository.dart';
 import 'package:nutrinitro/src/data/repositories/image/image_repository.dart';
 import 'package:sqflite/sqflite.dart';
@@ -46,6 +46,8 @@ class AnalysisRepository {
     Set<int> cropFilter = const {},
     String searchQuery = '',
     String sortOrder = 'datetime DESC',
+    DateTime? dateFrom,
+    DateTime? dateTo,
   }) async {
     try {
       final whereClauses = <String>[];
@@ -69,6 +71,21 @@ class AnalysisRepository {
       if (searchQuery.isNotEmpty) {
         whereClauses.add('(a.title LIKE ? OR c.name LIKE ?)');
         whereArgs.addAll(['%$searchQuery%', '%$searchQuery%']);
+      }
+
+      // Date range
+      if (dateFrom != null) {
+        whereClauses.add('a.datetime >= ?');
+        whereArgs.add(
+          DateTime(dateFrom.year, dateFrom.month, dateFrom.day).toIso8601String(),
+        );
+      }
+      if (dateTo != null) {
+        whereClauses.add('a.datetime <= ?');
+        whereArgs.add(
+          DateTime(dateTo.year, dateTo.month, dateTo.day, 23, 59, 59, 999)
+              .toIso8601String(),
+        );
       }
 
       final whereString = whereClauses.isNotEmpty
@@ -97,6 +114,17 @@ class AnalysisRepository {
       return Success(analyses);
     } catch (e) {
       return Failure(Exception('Error fetching analyses: $e'));
+    }
+  }
+
+  Future<Result<List<AnalysisModel>>> findActive() async {
+    try {
+      final rows = await _db.rawQuery(
+        "SELECT * FROM analyses WHERE status = 'processing' ORDER BY id DESC",
+      );
+      return Success(rows.map((r) => AnalysisModel.fromMap(r)).toList());
+    } catch (e) {
+      return Failure(Exception('Error fetching active analyses: $e'));
     }
   }
 

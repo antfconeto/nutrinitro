@@ -1,4 +1,4 @@
-import 'package:nutrinitro/src/data/models/recipe/analysis_recipe.dart';
+import 'package:nutrinitro/src/data/models/analysis/analysis_recipe.dart';
 import 'package:nutrinitro/src/data/services/analysis/core/analysis_progress.dart';
 import 'package:nutrinitro/src/data/services/analysis/recipe/prediction/feature_stats.dart';
 import 'package:nutrinitro/src/data/services/analysis/recipe/pipeline/ops/index_compute.dart';

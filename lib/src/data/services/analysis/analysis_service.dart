@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 
-import 'package:nutrinitro/src/data/models/analysis_payload.dart';
+import 'package:nutrinitro/src/data/models/analysis/analysis_payload.dart';
 import 'package:nutrinitro/src/data/services/analysis/core/analysis_progress.dart';
 import 'package:nutrinitro/src/data/services/analysis/analysis_registry.dart';
 

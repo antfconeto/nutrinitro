@@ -1,5 +1,5 @@
 import 'package:nutrinitro/src/core/interfaces/api_result_interface.dart';
-import 'package:nutrinitro/src/data/models/image_model.dart';
+import 'package:nutrinitro/src/data/models/analysis/image_model.dart';
 import 'package:sqflite/sqflite.dart';
 
 class ImageRepository {

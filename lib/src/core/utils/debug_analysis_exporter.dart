@@ -8,8 +8,8 @@ import 'package:nutrinitro/src/core/config/env.dart';
 import 'package:nutrinitro/src/core/themes/app_colors.dart';
 import 'package:nutrinitro/src/core/themes/app_text.dart';
 import 'package:nutrinitro/src/core/utils/validation_parcel_matcher.dart';
-import 'package:nutrinitro/src/data/models/analysis_model.dart';
-import 'package:nutrinitro/src/data/models/image_model.dart';
+import 'package:nutrinitro/src/data/models/analysis/analysis_model.dart';
+import 'package:nutrinitro/src/data/models/analysis/image_model.dart';
 import 'package:path_provider/path_provider.dart';
 
 /// Exporta resultados da análise em JSON para validação de acurácia (modo debug).

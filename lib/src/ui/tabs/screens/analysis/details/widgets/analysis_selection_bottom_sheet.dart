@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nutrinitro/src/core/themes/app_colors.dart';
 import 'package:nutrinitro/src/core/themes/app_text.dart';
-import 'package:nutrinitro/src/data/models/analysis_model.dart';
+import 'package:nutrinitro/src/data/models/analysis/analysis_model.dart';
 import 'package:nutrinitro/src/data/services/analysis/recipe/catalog/crop_analysis_option.dart';
 import 'package:nutrinitro/src/data/services/analysis/recipe/catalog/recipe_catalog_provider.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/analysis/details/analysis_details_view_model.dart';

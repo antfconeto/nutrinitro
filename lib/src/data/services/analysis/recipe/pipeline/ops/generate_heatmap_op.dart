@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:nutrinitro/src/data/models/recipe/analysis_recipe.dart';
+import 'package:nutrinitro/src/data/models/analysis/analysis_recipe.dart';
 import 'package:nutrinitro/src/data/services/analysis/core/analysis_progress.dart';
 import 'package:nutrinitro/src/data/services/analysis/imaging/image_analysis_helper.dart';
 import 'package:nutrinitro/src/data/services/analysis/recipe/pipeline/pipeline_context.dart';

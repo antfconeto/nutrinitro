@@ -42,7 +42,7 @@ final class AnalysesListViewModelProvider
 }
 
 String _$analysesListViewModelHash() =>
-    r'7626322132f3de9277fde7046683eef96c671071';
+    r'cf9be607730dd81d9f81cf58341139a4a7d3f435';
 
 abstract class _$AnalysesListViewModel extends $Notifier<AnalysesListState> {
   AnalysesListState build();

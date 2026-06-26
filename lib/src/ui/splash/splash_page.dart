@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nutrinitro/src/core/constants/resource.dart';
+import 'package:nutrinitro/src/core/const/resource.dart';
 import 'package:nutrinitro/src/core/themes/app_colors.dart';
 import 'package:nutrinitro/src/core/widgets/app_loading.dart';
 import 'splash_view_model.dart';

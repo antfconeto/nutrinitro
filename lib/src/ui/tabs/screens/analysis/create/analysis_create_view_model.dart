@@ -4,7 +4,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:nutrinitro/src/core/interfaces/api_result_interface.dart';
 import 'package:nutrinitro/src/data/models/crop_model.dart';
-import 'package:nutrinitro/src/data/models/image_model.dart';
+import 'package:nutrinitro/src/data/models/analysis/image_model.dart';
 import 'package:nutrinitro/src/data/models/local_image_pick.dart';
 import 'package:nutrinitro/src/data/repositories/repositories_provider.dart';
 import 'package:nutrinitro/src/data/services/services_provider.dart';
@@ -57,6 +57,37 @@ class AnalysisCreateViewModel extends _$AnalysisCreateViewModel {
 
   void selectCrop(CropModel crop) =>
       state = state.copyWith(selectedCrop: crop, clearError: true);
+
+  Future<void> initFromPreset(DroneAnalysisPreset preset) async {
+    state = state.copyWith(
+      title: preset.title,
+      datetime: preset.datetime,
+      notes: preset.notes,
+      clearNotes: preset.notes == null,
+      images: const [],
+      imageSourceNames: const [],
+      submitted: false,
+      clearSelectedCrop: true,
+      clearError: true,
+    );
+
+    if (preset.cropId != null && state.crops.isNotEmpty) {
+      try {
+        final match = state.crops.firstWhere((c) => c.id == preset.cropId);
+        state = state.copyWith(selectedCrop: match);
+      } catch (_) {}
+    }
+
+    if (preset.images.isNotEmpty) {
+      final picks = preset.images.asMap().entries.map((e) {
+        final name = e.key < preset.sourceNames.length
+            ? preset.sourceNames[e.key]
+            : null;
+        return LocalImagePick(e.value, name);
+      }).toList();
+      await _appendImages(picks);
+    }
+  }
 
   // ─── Images ────────────────────────────────────────────────────────────────
 

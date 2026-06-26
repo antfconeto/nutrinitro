@@ -27,6 +27,16 @@ class _AnalysisCreatePageState extends ConsumerState<AnalysisCreatePage> {
     super.initState();
     _titleController = TextEditingController();
     _notesController = TextEditingController();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is DroneAnalysisPreset) {
+        _titleController.text = args.title;
+        _notesController.text = args.notes ?? '';
+        ref
+            .read(analysisCreateViewModelProvider.notifier)
+            .initFromPreset(args);
+      }
+    });
   }
 
   @override

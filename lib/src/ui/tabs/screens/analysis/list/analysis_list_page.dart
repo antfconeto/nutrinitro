@@ -2,10 +2,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:nutrinitro/src/core/constants/analysis_status.dart';
+import 'package:nutrinitro/src/core/const/analysis_status.dart';
 import 'package:nutrinitro/src/core/themes/app_colors.dart';
 import 'package:nutrinitro/src/core/themes/app_text.dart';
-import 'package:nutrinitro/src/data/models/analysis_model.dart';
+import 'package:nutrinitro/src/data/models/analysis/analysis_model.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/analysis/list/analysis_list_state.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/analysis/list/analysis_list_view_model.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
@@ -164,96 +164,126 @@ class _AnalysisListPageState extends ConsumerState<AnalysisListPage> {
         backgroundColor: AppColors.green,
         foregroundColor: AppColors.white,
         elevation: 0,
-        actions: [
-          Stack(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.tune_outlined),
-                onPressed: () => _showFilterSheet(context),
-              ),
-              if (state.activeFilterCount > 0)
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    width: 16,
-                    height: 16,
-                    decoration: const BoxDecoration(
-                      color: AppColors.orange,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Text(
-                        '${state.activeFilterCount}',
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ],
       ),
       body: SafeArea(
         child: Column(
           children: [
-            // ── Busca ────────────────────────────────────────────────────────
+            // ── Busca + filtro ────────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: TextField(
-                controller: _searchController,
-                onChanged: (v) => ref
-                    .read(analysesListViewModelProvider.notifier)
-                    .updateSearch(v),
-                decoration: InputDecoration(
-                  hintText: 'Buscar por título ou cultura...',
-                  hintStyle: AppText.hint,
-                  prefixIcon: const Icon(
-                    Icons.search,
-                    color: AppColors.grayMedium,
-                    size: 20,
-                  ),
-                  suffixIcon: state.searchQuery.isNotEmpty
-                      ? GestureDetector(
-                          onTap: () {
-                            _searchController.clear();
-                            ref
-                                .read(analysesListViewModelProvider.notifier)
-                                .updateSearch('');
-                          },
-                          child: const Icon(
-                            Icons.close,
-                            color: AppColors.grayMedium,
-                            size: 18,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: (v) => ref
+                          .read(analysesListViewModelProvider.notifier)
+                          .updateSearch(v),
+                      decoration: InputDecoration(
+                        hintText: 'Buscar por título ou cultura...',
+                        hintStyle: AppText.hint,
+                        prefixIcon: const Icon(
+                          Icons.search,
+                          color: AppColors.grayMedium,
+                          size: 20,
+                        ),
+                        suffixIcon: state.searchQuery.isNotEmpty
+                            ? GestureDetector(
+                                onTap: () {
+                                  _searchController.clear();
+                                  ref
+                                      .read(analysesListViewModelProvider.notifier)
+                                      .updateSearch('');
+                                },
+                                child: const Icon(
+                                  Icons.close,
+                                  color: AppColors.grayMedium,
+                                  size: 18,
+                                ),
+                              )
+                            : null,
+                        filled: true,
+                        fillColor: AppColors.white,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                              const BorderSide(color: Color(0xFFDDE4DD)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(
+                            color: AppColors.green,
+                            width: 1.5,
                           ),
-                        )
-                      : null,
-                  filled: true,
-                  fillColor: AppColors.white,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide.none,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: Color(0xFFDDE4DD)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(
-                      color: AppColors.green,
-                      width: 1.5,
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  Stack(
+                    children: [
+                      Material(
+                        color: AppColors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        child: InkWell(
+                          onTap: () => _showFilterSheet(context),
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            width: 46,
+                            height: 46,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: state.hasActiveFilters
+                                    ? AppColors.green
+                                    : const Color(0xFFDDE4DD),
+                                width: state.hasActiveFilters ? 1.5 : 1,
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.tune_outlined,
+                              color: state.hasActiveFilters
+                                  ? AppColors.green
+                                  : AppColors.grayMedium,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (state.activeFilterCount > 0)
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: Container(
+                            width: 14,
+                            height: 14,
+                            decoration: const BoxDecoration(
+                              color: AppColors.orange,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Center(
+                              child: Text(
+                                '${state.activeFilterCount}',
+                                style: const TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
               ),
             ),
 
@@ -276,6 +306,7 @@ class _AnalysisListPageState extends ConsumerState<AnalysisListPage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'analysis_list_fab',
         onPressed: () => Navigator.of(context).pushNamed('/analysis/create'),
         backgroundColor: AppColors.green,
         foregroundColor: AppColors.white,
@@ -652,6 +683,24 @@ class _ActiveFiltersRow extends ConsumerWidget {
                       vm.updateSortOrder(AnalysisSortOrder.newestFirst),
                 ),
               ),
+            if (state.dateFrom != null)
+              Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: _ActiveChip(
+                  label:
+                      'De ${DateFormat('dd/MM/yy').format(state.dateFrom!)}',
+                  onRemove: () => vm.setDateFrom(null),
+                ),
+              ),
+            if (state.dateTo != null)
+              Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: _ActiveChip(
+                  label:
+                      'Até ${DateFormat('dd/MM/yy').format(state.dateTo!)}',
+                  onRemove: () => vm.setDateTo(null),
+                ),
+              ),
             GestureDetector(
               onTap: () => vm.clearFilters(),
               child: Text(
@@ -820,6 +869,55 @@ class _FilterSheet extends ConsumerWidget {
             const SizedBox(height: 20),
           ],
 
+          // ── Período ──────────────────────────────────────────────────────────
+          Text(
+            'Período',
+            style: AppText.body.copyWith(
+              color: AppColors.grayMedium,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _DateField(
+                  placeholder: 'Início',
+                  date: state.dateFrom,
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: state.dateFrom ?? DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null) vm.setDateFrom(picked);
+                  },
+                  onClear: () => vm.setDateFrom(null),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _DateField(
+                  placeholder: 'Fim',
+                  date: state.dateTo,
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: state.dateTo ?? DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null) vm.setDateTo(picked);
+                  },
+                  onClear: () => vm.setDateTo(null),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
           // ── Ordenação ────────────────────────────────────────────────────────
           Text(
             'Ordenar por',
@@ -940,6 +1038,74 @@ class _FilterChip extends StatelessWidget {
                 color: selected ? activeColor : AppColors.grayMedium,
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Date field ───────────────────────────────────────────────────────────────
+
+class _DateField extends StatelessWidget {
+  final String placeholder;
+  final DateTime? date;
+  final VoidCallback onTap;
+  final VoidCallback onClear;
+
+  const _DateField({
+    required this.placeholder,
+    required this.date,
+    required this.onTap,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasDate = date != null;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: hasDate
+              ? AppColors.green.withValues(alpha: 0.06)
+              : AppColors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: hasDate
+                ? AppColors.green.withValues(alpha: 0.5)
+                : const Color(0xFFDDE4DD),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.calendar_today_outlined,
+              size: 13,
+              color: hasDate ? AppColors.green : AppColors.grayMedium,
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                hasDate
+                    ? DateFormat('dd/MM/yyyy').format(date!)
+                    : placeholder,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: hasDate ? AppColors.green : AppColors.grayMedium,
+                ),
+              ),
+            ),
+            if (hasDate)
+              GestureDetector(
+                onTap: onClear,
+                child: const Icon(
+                  Icons.close,
+                  size: 14,
+                  color: AppColors.green,
+                ),
+              ),
           ],
         ),
       ),

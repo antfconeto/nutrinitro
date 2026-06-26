@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:nutrinitro/src/core/themes/app_colors.dart';
 import 'package:nutrinitro/src/core/themes/app_text.dart';
-import 'package:nutrinitro/src/data/models/analysis_model.dart';
+import 'package:nutrinitro/src/data/models/analysis/analysis_model.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/analysis/details/analysis_details_state.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/analysis/details/analysis_details_view_model.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/analysis/details/analysis_pipeline_viewer.dart';
@@ -179,7 +179,7 @@ class AnalysisHeaderCard extends ConsumerWidget {
             const SizedBox(height: 16),
             _AnalysisProgressPanel(state: state),
           ],
-          if (analysis.isPending || analysis.isCompleted || isAnalyzing) ...[
+          if (analysis.isPending || analysis.isProcessing || analysis.isCompleted || isAnalyzing) ...[
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
@@ -212,9 +212,11 @@ class AnalysisHeaderCard extends ConsumerWidget {
                 label: Text(
                   isAnalyzing
                       ? 'Analisando...'
-                      : (analysis.isCompleted
+                      : analysis.isCompleted
                           ? 'Refazer Análise'
-                          : 'Iniciar Análise'),
+                          : analysis.isProcessing
+                              ? 'Processar novamente'
+                              : 'Iniciar Análise',
                   style: AppText.button.copyWith(fontWeight: FontWeight.bold),
                 ),
               ),

@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:nutrinitro/src/data/models/analysis_model.dart';
+import 'package:nutrinitro/src/data/models/analysis/analysis_model.dart';
 import 'package:nutrinitro/src/data/services/analysis/core/analysis_progress.dart';
 
 class AnalysisDetailsState extends Equatable {

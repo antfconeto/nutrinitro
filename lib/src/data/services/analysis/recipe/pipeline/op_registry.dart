@@ -1,4 +1,4 @@
-import 'package:nutrinitro/src/data/models/recipe/analysis_recipe.dart';
+import 'package:nutrinitro/src/data/models/analysis/analysis_recipe.dart';
 import 'package:nutrinitro/src/data/services/analysis/recipe/pipeline/ops/extract_features_op.dart';
 import 'package:nutrinitro/src/data/services/analysis/recipe/pipeline/ops/generate_heatmap_op.dart';
 import 'package:nutrinitro/src/data/services/analysis/recipe/pipeline/ops/image_preprocess_ops.dart';
