@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nutrinitro/src/core/themes/app_colors.dart';
+import 'package:nutrinitro/src/data/services/active_tasks/active_tasks_provider.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/dashboard/dashboard_page.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/drone/drone_page.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/analysis/list/analysis_list_page.dart';
@@ -15,13 +16,30 @@ class TabsPage extends ConsumerStatefulWidget {
   ConsumerState<TabsPage> createState() => _TabsPageState();
 }
 
-class _TabsPageState extends ConsumerState<TabsPage> {
+class _TabsPageState extends ConsumerState<TabsPage> with WidgetsBindingObserver {
   late int _currentIndex;
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
+    WidgetsBinding.instance.addObserver(this);
+    Future.microtask(
+      () => ref.read(activeTasksProvider.notifier).refresh(),
+    );
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.read(activeTasksProvider.notifier).refresh();
+    }
   }
 
   final List<Widget> _pages = <Widget>[

@@ -117,6 +117,17 @@ class AnalysisRepository {
     }
   }
 
+  Future<Result<List<AnalysisModel>>> findActive() async {
+    try {
+      final rows = await _db.rawQuery(
+        "SELECT * FROM analyses WHERE status = 'processing' ORDER BY id DESC",
+      );
+      return Success(rows.map((r) => AnalysisModel.fromMap(r)).toList());
+    } catch (e) {
+      return Failure(Exception('Error fetching active analyses: $e'));
+    }
+  }
+
   Future<Result<AnalysisModel>> find(
     int id, {
     Set<AnalysisInclude> include = const {},

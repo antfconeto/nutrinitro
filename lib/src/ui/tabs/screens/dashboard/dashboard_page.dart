@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nutrinitro/src/core/themes/app_colors.dart';
 import 'package:nutrinitro/src/core/themes/app_text.dart';
 import 'package:nutrinitro/src/core/widgets/app_skeleton.dart';
+import 'package:nutrinitro/src/data/services/active_tasks/active_tasks_provider.dart';
+import 'package:nutrinitro/src/ui/tabs/screens/dashboard/widgets/active_tasks_bottom_sheet.dart';
 
 class DashboardPage extends ConsumerWidget {
   const DashboardPage({super.key});
@@ -16,6 +18,10 @@ class DashboardPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final badgeCount = ref.watch(
+      activeTasksProvider.select((s) => s.totalCount),
+    );
+
     return Scaffold(
       backgroundColor: AppColors.grayLight,
       body: CustomScrollView(
@@ -57,17 +63,25 @@ class DashboardPage extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: AppColors.white.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.notifications_outlined,
-                        color: AppColors.white,
-                        size: 22,
+                    GestureDetector(
+                      onTap: () => showActiveTasksSheet(context),
+                      child: Badge(
+                        label: Text('$badgeCount'),
+                        isLabelVisible: badgeCount > 0,
+                        backgroundColor: AppColors.orange,
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: AppColors.white.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.notifications_outlined,
+                            color: AppColors.white,
+                            size: 22,
+                          ),
+                        ),
                       ),
                     ),
                   ],

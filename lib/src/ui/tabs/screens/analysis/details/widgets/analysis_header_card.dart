@@ -179,7 +179,7 @@ class AnalysisHeaderCard extends ConsumerWidget {
             const SizedBox(height: 16),
             _AnalysisProgressPanel(state: state),
           ],
-          if (analysis.isPending || analysis.isCompleted || isAnalyzing) ...[
+          if (analysis.isPending || analysis.isProcessing || analysis.isCompleted || isAnalyzing) ...[
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
@@ -212,9 +212,11 @@ class AnalysisHeaderCard extends ConsumerWidget {
                 label: Text(
                   isAnalyzing
                       ? 'Analisando...'
-                      : (analysis.isCompleted
+                      : analysis.isCompleted
                           ? 'Refazer Análise'
-                          : 'Iniciar Análise'),
+                          : analysis.isProcessing
+                              ? 'Processar novamente'
+                              : 'Iniciar Análise',
                   style: AppText.button.copyWith(fontWeight: FontWeight.bold),
                 ),
               ),

@@ -26,6 +26,20 @@ class MissionRepository {
     }
   }
 
+  Future<Result<List<MissionModel>>> findByStatus(MissionStatus status) async {
+    try {
+      final rows = await _db.query(
+        'missions',
+        where: 'status = ?',
+        whereArgs: [status.name],
+        orderBy: 'id DESC',
+      );
+      return Success(rows.map((r) => MissionModel.fromMap(r)).toList());
+    } catch (e) {
+      return Failure(Exception('Error fetching missions by status: $e'));
+    }
+  }
+
   Future<Result<MissionModel>> find(int id) async {
     try {
       final rows = await _db.query(

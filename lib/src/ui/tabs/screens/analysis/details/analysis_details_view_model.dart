@@ -65,7 +65,7 @@ class AnalysisDetailsViewModel extends _$AnalysisDetailsViewModel {
   Future<void> startAnalysis(List<String> analysisTypes, {int blockSize = 10}) async {
     final currentAnalysis = state.analysis;
     if (currentAnalysis == null || _analysisId == null) return;
-    if (currentAnalysis.isProcessing) return;
+    if (state.isAnalyzing) return;
     if (analysisTypes.isEmpty) return;
 
     final images = currentAnalysis.images;
