@@ -6,6 +6,7 @@ import 'package:gal/gal.dart';
 import 'package:intl/intl.dart';
 import 'package:nutrinitro/src/core/themes/app_colors.dart';
 import 'package:nutrinitro/src/core/themes/app_text.dart';
+import 'package:nutrinitro/src/core/widgets/download_progress_dialog.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/drone/media/drone_media_state.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/drone/media/drone_media_view_model.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
@@ -42,29 +43,10 @@ class _DroneMediaPageState extends ConsumerState<DroneMediaPage> {
   Future<void> _downloadImages(
     BuildContext context,
     List<DroneImageEntry> images,
-  ) async {
-    try {
-      for (final e in images) {
-        await Gal.putImage(e.image.localPath);
-      }
-      if (context.mounted) {
-        showTopSnackBar(
-          Overlay.of(context),
-          CustomSnackBar.success(
-            message:
-                '${images.length} foto${images.length != 1 ? 's' : ''} salva${images.length != 1 ? 's' : ''} na galeria.',
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        showTopSnackBar(
-          Overlay.of(context),
-          const CustomSnackBar.error(message: 'Erro ao salvar na galeria.'),
-        );
-      }
-    }
-  }
+  ) => downloadWithProgress(
+    context,
+    paths: images.map((e) => e.image.localPath).toList(),
+  );
 
   void _openViewer(
     List<DroneImageEntry> entries,

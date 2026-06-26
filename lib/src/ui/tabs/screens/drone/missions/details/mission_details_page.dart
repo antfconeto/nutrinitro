@@ -13,6 +13,7 @@ import 'package:nutrinitro/src/core/themes/app_text.dart';
 import 'package:nutrinitro/src/data/models/drone/drone_image_model.dart';
 import 'package:nutrinitro/src/data/models/drone/mission_model.dart';
 import 'package:nutrinitro/src/data/services/services_provider.dart';
+import 'package:nutrinitro/src/core/widgets/download_progress_dialog.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/analysis/create/analysis_create_state.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/drone/drone_tab_provider.dart';
 import 'package:nutrinitro/src/ui/tabs/screens/drone/missions/details/mission_details_state.dart';
@@ -677,29 +678,10 @@ class _MissionDetailsPageState extends ConsumerState<MissionDetailsPage> {
   Future<void> _downloadAllImages(
     BuildContext context,
     List<DroneImageModel> images,
-  ) async {
-    try {
-      for (final img in images) {
-        await Gal.putImage(img.localPath);
-      }
-      if (context.mounted) {
-        showTopSnackBar(
-          Overlay.of(context),
-          CustomSnackBar.success(
-            message:
-                '${images.length} foto${images.length != 1 ? 's' : ''} salva${images.length != 1 ? 's' : ''} na galeria.',
-          ),
-        );
-      }
-    } catch (_) {
-      if (context.mounted) {
-        showTopSnackBar(
-          Overlay.of(context),
-          const CustomSnackBar.error(message: 'Erro ao salvar na galeria.'),
-        );
-      }
-    }
-  }
+  ) => downloadWithProgress(
+    context,
+    paths: images.map((img) => img.localPath).toList(),
+  );
 
   void _openImageViewer(
     BuildContext context,
