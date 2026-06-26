@@ -101,13 +101,7 @@ switch (result) {
 
 - Todos os providers usam `@riverpod` / `@Riverpod(keepAlive: true)` com code generation
 - Arquivos `*.g.dart` são gerados — **nunca editar à mão**
-- Rodar o gerador após qualquer alteração em providers ou `.env`:
-
-```bash
-dart run build_runner build --delete-conflicting-outputs
-# ou em modo watch durante o desenvolvimento:
-dart run build_runner watch --delete-conflicting-outputs
-```
+- **O agente NUNCA deve rodar `build_runner`** — o desenvolvedor cuida disso manualmente. Apenas indicar quando é necessário rodar após alterações em providers.
 
 **Providers keepAlive (globais):** `databaseClientProvider`, `droneServiceProvider`
 
@@ -337,18 +331,14 @@ onLongPressEnd: (_) => setState(() => _draggingIndex = null),
 # Analisar o projeto
 dart analyze lib/
 
-# Code generation (Riverpod + envied)
-dart run build_runner build --delete-conflicting-outputs
-
-# Mode watch durante desenvolvimento
-dart run build_runner watch --delete-conflicting-outputs
-
 # Rodar o app
 flutter run
 
 # Testes
 flutter test
 ```
+
+> **Nota:** `build_runner` é rodado manualmente pelo desenvolvedor — o agente não deve executá-lo.
 
 ---
 

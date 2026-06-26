@@ -19,3 +19,5 @@ dart run build_runner watch
 fgen
 adb shell "run-as nutrinitro.com.nutrinitro cat /data/data/nutrinitro.com.nutrinitro/databases/nutrinitro.db" > ~/nutrinitro.db
 adb shell "run-as nutrinitro.com.nutrinitro rm /data/data/nutrinitro.com.nutrinitro/databases/nutrinitro.db"
+
+dart run build_runner build --delete-conflicting-outputs
